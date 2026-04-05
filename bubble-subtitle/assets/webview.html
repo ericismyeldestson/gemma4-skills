@@ -16,9 +16,8 @@
     }
 
     html, body { height: 100%; }
-
     body {
-      background: var(--bg);
+      background: #000;
       color: #fff;
       font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif;
       position: fixed; inset: 0;
@@ -26,7 +25,145 @@
       user-select: none;
     }
 
-    /* ── Header ── */
+    /* ═══════════════ CAMERA MODE ═══════════════ */
+
+    /* Full-screen camera feed */
+    #cam-video {
+      position: fixed; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1); /* mirror selfie view */
+    }
+
+    /* Overlay layer on top of video */
+    #cam-overlay {
+      position: fixed; inset: 0;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    /* Bubble stream: bubbles float up from here */
+    #cam-bubbles {
+      position: fixed;
+      bottom: 80px; left: 50%;
+      transform: translateX(-50%);
+      width: 85%;
+      display: flex;
+      flex-direction: column-reverse;
+      align-items: center;
+      gap: 8px;
+      z-index: 3;
+    }
+
+    /* Camera bubble style */
+    .cam-bubble {
+      background: rgba(10, 10, 30, 0.72);
+      border: 1.5px solid rgba(255,255,255,0.18);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 10px 18px;
+      border-radius: 22px;
+      font-size: 15px;
+      font-weight: 500;
+      line-height: 1.5;
+      text-align: center;
+      max-width: 90%;
+      word-break: break-word;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      opacity: 0;
+      transform: translateY(20px) scale(0.92);
+      transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .cam-bubble.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    .cam-bubble.old {
+      opacity: 0.4;
+      transform: translateY(-4px) scale(0.95);
+      font-size: 13px;
+    }
+    .cam-bubble.fading {
+      opacity: 0;
+      transform: translateY(-16px) scale(0.88);
+    }
+
+    /* Interim (in-progress) bubble */
+    #cam-interim {
+      position: fixed;
+      bottom: 82px; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(88,101,242,0.25);
+      border: 1.5px dashed rgba(88,101,242,0.6);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      padding: 8px 16px;
+      border-radius: 18px;
+      font-size: 14px;
+      color: rgba(255,255,255,0.75);
+      max-width: 80%; text-align: center;
+      display: none;
+      z-index: 4;
+    }
+
+    /* Camera controls bar */
+    #cam-ctrl {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      height: 74px;
+      padding: 0 24px;
+      background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%);
+      display: flex; align-items: center; justify-content: space-between;
+      z-index: 5;
+    }
+    .cam-btn {
+      background: rgba(255,255,255,0.15);
+      border: 1.5px solid rgba(255,255,255,0.25);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      color: #fff; border-radius: 50%;
+      width: 44px; height: 44px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .cam-btn:active { transform: scale(0.88); }
+    .cam-mic-btn {
+      width: 60px; height: 60px; font-size: 24px;
+      background: rgba(88,101,242,0.8);
+      border-color: rgba(88,101,242,0.4);
+    }
+    .cam-mic-btn.recording {
+      background: rgba(229,57,53,0.85);
+      border-color: rgba(229,57,53,0.4);
+      animation: cam-pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes cam-pulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(229,57,53,0.5); }
+      50%      { box-shadow: 0 0 0 14px rgba(229,57,53,0); }
+    }
+
+    /* Top-left status indicator */
+    #cam-status {
+      position: fixed; top: 16px; left: 16px;
+      background: rgba(0,0,0,0.45);
+      border: 1px solid rgba(255,255,255,0.15);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      padding: 5px 12px; border-radius: 20px;
+      font-size: 12px; color: rgba(255,255,255,0.8);
+      display: flex; align-items: center; gap: 6px;
+      z-index: 5;
+    }
+    #cam-status .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #888;
+    }
+    #cam-status .dot.live { background: #E53935; animation: blink 1s step-end infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+    /* ═══════════════ SHARED STYLES ═══════════════ */
+
+    /* Header (record + play modes) */
     .hdr {
       position: fixed; top: 0; left: 0; right: 0; height: 42px;
       padding: 0 14px;
@@ -35,30 +172,30 @@
       display: flex; align-items: center; gap: 8px;
       z-index: 10;
     }
-    .hdr-icon { font-size: 16px; }
     .hdr-title { flex: 1; font-size: 13px; font-weight: 600; }
-    .hdr-badge {
-      font-size: 11px; color: var(--dim);
-      background: var(--surf); padding: 2px 8px; border-radius: 10px;
-    }
+    .hdr-badge { font-size: 11px; color: var(--dim); background: var(--surf); padding: 2px 8px; border-radius: 10px; }
 
-    /* ── Stage ── */
+    /* Stage (record + play modes) */
     .stage {
       position: fixed; top: 42px; left: 0; right: 0; bottom: 68px;
+      background: var(--bg);
       overflow: hidden;
+    }
+    .stage-bg {
       background:
         radial-gradient(ellipse at 20% 50%, rgba(88,101,242,0.08) 0%, transparent 60%),
-        radial-gradient(ellipse at 80% 50%, rgba(39,174,96,0.08)  0%, transparent 60%);
+        radial-gradient(ellipse at 80% 50%, rgba(39,174,96,0.08) 0%, transparent 60%);
+      width: 100%; height: 100%;
     }
 
-    /* ── Zones ── */
+    /* Zones */
     .zone { position: absolute; display: flex; flex-direction: column; gap: 8px; }
     .z-left   { left: 10px; right: 52%; top: 10%; bottom: 10%; justify-content: center; align-items: flex-start; }
     .z-right  { right: 10px; left: 52%; top: 10%; bottom: 10%; justify-content: center; align-items: flex-end; }
     .z-center { left: 12%; right: 12%; top: 15%; bottom: 15%; justify-content: center; align-items: center; }
     .z-top    { left: 10%; right: 10%; top: 6%; height: 28%; justify-content: flex-start; align-items: center; }
 
-    /* ── Bubbles ── */
+    /* Stage bubbles */
     .bubble {
       position: relative; max-width: 100%;
       padding: 9px 14px; border-radius: 20px;
@@ -79,29 +216,21 @@
     .sp-A { background: var(--A); } .sp-A::after { background: var(--A); }
     .sp-B { background: var(--B); } .sp-B::after { background: var(--B); }
     .sp-C { background: var(--C); } .sp-C::after { background: var(--C); }
-    .sp-D { background: var(--D); color: #1a1a1a; } .sp-D::after { background: var(--D); }
+    .sp-D { background: var(--D); color: #111; } .sp-D::after { background: var(--D); }
 
     @keyframes inLeft   { 0%{opacity:0;transform:translateX(-18px) scale(.82)} 55%{transform:translateX(3px) scale(1.04)} 100%{opacity:1;transform:none} }
     @keyframes inRight  { 0%{opacity:0;transform:translateX(18px) scale(.82)}  55%{transform:translateX(-3px) scale(1.04)} 100%{opacity:1;transform:none} }
     @keyframes inCenter { 0%{opacity:0;transform:scale(.72)} 65%{transform:scale(1.06)} 100%{opacity:1;transform:none} }
     @keyframes inTop    { 0%{opacity:0;transform:translateY(-14px) scale(.88)} 100%{opacity:1;transform:none} }
-    @keyframes out      { 0%{opacity:1;transform:none} 100%{opacity:0;transform:scale(.82)} }
+    @keyframes outAnim  { 0%{opacity:1;transform:none} 100%{opacity:0;transform:scale(.82)} }
 
     .anim-left   { animation: inLeft   0.38s cubic-bezier(0.34,1.56,0.64,1) forwards; }
     .anim-right  { animation: inRight  0.38s cubic-bezier(0.34,1.56,0.64,1) forwards; }
     .anim-center { animation: inCenter 0.42s cubic-bezier(0.34,1.56,0.64,1) forwards; }
     .anim-top    { animation: inTop    0.36s ease-out forwards; }
-    .anim-out    { animation: out 0.22s ease-in forwards; }
+    .anim-out    { animation: outAnim  0.22s ease-in forwards; }
 
-    /* ── Legend ── */
-    .legend {
-      position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
-      display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
-    }
-    .leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--dim); }
-    .leg-dot  { width: 8px; height: 8px; border-radius: 50%; }
-
-    /* ── Controls (playback) ── */
+    /* Record/Play controls */
     .ctrl {
       position: fixed; bottom: 0; left: 0; right: 0; height: 68px;
       padding: 10px 14px;
@@ -118,68 +247,48 @@
     .btn:active { transform: scale(0.9); }
     .btn-sm   { width: 32px; height: 32px; font-size: 13px; }
     .btn-play { width: 42px; height: 42px; font-size: 18px; background: var(--A); }
-    .prog-col { flex: 1; display: flex; flex-direction: column; gap: 5px; }
-    .prog-track {
-      height: 4px; background: rgba(255,255,255,0.12); border-radius: 2px;
-      cursor: pointer; position: relative;
-    }
-    .prog-fill  { height: 100%; background: var(--A); border-radius: 2px; width: 0%; pointer-events: none; transition: width 0.08s linear; }
-    .prog-thumb {
-      position: absolute; top: 50%; transform: translate(-50%,-50%);
-      width: 10px; height: 10px; background: #fff; border-radius: 50%;
-      pointer-events: none; left: 0%;
-      box-shadow: 0 0 0 2px rgba(88,101,242,0.6); transition: left 0.08s linear;
-    }
-    .time-row { display: flex; justify-content: space-between; font-size: 10px; color: var(--dim); }
-    .speed-btn {
-      background: var(--surf); border: none; color: rgba(255,255,255,0.7);
-      padding: 4px 9px; border-radius: 10px; cursor: pointer;
-      font-size: 11px; font-weight: 700; flex-shrink: 0;
-    }
 
-    /* ── Record mode controls ── */
-    .rec-ctrl {
-      position: fixed; bottom: 0; left: 0; right: 0; height: 68px;
-      background: rgba(0,0,0,0.55);
-      border-top: 1px solid rgba(255,255,255,0.07);
-      display: flex; align-items: center; justify-content: center; gap: 20px;
-      z-index: 10;
-    }
+    /* Record-mode mic */
     .mic-btn {
       width: 52px; height: 52px; border-radius: 50%; border: none; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
-      font-size: 22px; transition: all 0.2s;
-      background: var(--A);
+      font-size: 22px; background: var(--A); transition: all 0.2s;
     }
     .mic-btn.recording { background: #E53935; animation: pulse 1s ease-in-out infinite; }
-    .mic-btn:active { transform: scale(0.92); }
-    @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(229,57,53,0.5)} 50%{box-shadow:0 0 0 12px rgba(229,57,53,0)} }
+    .mic-btn:active { transform: scale(0.9); }
+    @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(229,57,53,.5)} 50%{box-shadow:0 0 0 12px rgba(229,57,53,0)} }
 
-    .rec-status { font-size: 12px; color: var(--dim); text-align: center; min-width: 80px; }
-    .rec-clear {
-      background: var(--surf); border: none; color: var(--dim);
-      padding: 6px 12px; border-radius: 12px; cursor: pointer; font-size: 12px;
-    }
+    .rec-status { font-size: 12px; color: var(--dim); text-align: center; flex: 1; }
+    .clr-btn { background: var(--surf); border: none; color: var(--dim); padding: 6px 12px; border-radius: 12px; cursor: pointer; font-size: 12px; flex-shrink: 0; }
 
-    /* ── Interim bubble (live preview) ── */
     .interim-bubble {
       position: absolute; left: 50%; transform: translateX(-50%);
-      bottom: 80px;
-      background: rgba(88,101,242,0.35);
+      bottom: 12px;
+      background: rgba(88,101,242,0.3);
       border: 1px dashed rgba(88,101,242,0.7);
-      padding: 8px 14px; border-radius: 18px;
+      padding: 7px 14px; border-radius: 16px;
       font-size: 13px; color: rgba(255,255,255,0.8);
       max-width: 70%; text-align: center;
-      display: none;
+      display: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
 
-    /* ── Error / info ── */
-    .center-msg {
-      display: flex; flex-direction: column; align-items: center;
-      justify-content: center; height: 100%; gap: 12px;
-      text-align: center; padding: 24px; color: var(--dim); font-size: 14px;
-    }
-    .center-msg .icon { font-size: 36px; }
+    /* Progress bar */
+    .prog-col { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+    .prog-track { height: 4px; background: rgba(255,255,255,0.12); border-radius: 2px; cursor: pointer; position: relative; }
+    .prog-fill  { height: 100%; background: var(--A); border-radius: 2px; width: 0%; pointer-events: none; transition: width 0.08s linear; }
+    .prog-thumb { position: absolute; top: 50%; transform: translate(-50%,-50%); width: 10px; height: 10px; background: #fff; border-radius: 50%; pointer-events: none; left: 0%; box-shadow: 0 0 0 2px rgba(88,101,242,0.6); transition: left 0.08s linear; }
+    .time-row   { display: flex; justify-content: space-between; font-size: 10px; color: var(--dim); }
+    .speed-btn  { background: var(--surf); border: none; color: rgba(255,255,255,.7); padding: 4px 9px; border-radius: 10px; cursor: pointer; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+
+    /* Legend */
+    .legend { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--dim); }
+    .leg-dot  { width: 8px; height: 8px; border-radius: 50%; }
+
+    /* Error */
+    .center-msg { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 14px; text-align: center; padding: 24px; color: var(--dim); font-size: 14px; }
+    .center-msg .icon { font-size: 40px; }
+    .center-msg a { color: var(--A); text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -187,27 +296,187 @@
 
 <script>
 (function () {
-  const params   = new URLSearchParams(location.search);
-  const mode     = params.get('mode') || 'play';
-  const lang     = params.get('lang') || 'zh-CN';
+  const params = new URLSearchParams(location.search);
+  const mode   = params.get('mode') || 'camera';
+  const lang   = params.get('lang') || 'zh-CN';
 
-  /* ══════════════════════════════════════════════
-     RECORD MODE  — Web Speech API real-time STT
-  ══════════════════════════════════════════════ */
+  /* ─────────────────────────────────────────────
+     Shared: Web Speech API helpers
+  ───────────────────────────────────────────── */
+  function buildSpeechRec(lang, onFinal, onInterim, onError, onEnd) {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return null;
+    const rec = new SR();
+    rec.lang = lang;
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.onresult = (e) => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) onFinal(e.results[i][0].transcript.trim());
+        else interim += e.results[i][0].transcript;
+      }
+      if (interim) onInterim(interim);
+    };
+    rec.onerror = onError;
+    rec.onend   = onEnd;
+    return rec;
+  }
+
+  /* ═══════════════════════════════════════════
+     CAMERA MODE — AR bubble overlay
+  ═══════════════════════════════════════════ */
+  if (mode === 'camera') {
+    document.getElementById('root').innerHTML = `
+      <video id="cam-video" autoplay playsinline muted></video>
+      <div id="cam-status"><div class="dot" id="cam-dot"></div><span id="cam-txt">初始化中…</span></div>
+      <div id="cam-bubbles"></div>
+      <div id="cam-interim"></div>
+      <div id="cam-ctrl">
+        <button class="cam-btn" id="cam-flip" title="翻转">🔄</button>
+        <button class="cam-btn cam-mic-btn" id="cam-mic">🎙️</button>
+        <button class="cam-btn" id="cam-clear" title="清空">🗑️</button>
+      </div>
+    `;
+
+    const video      = document.getElementById('cam-video');
+    const bubblesEl  = document.getElementById('cam-bubbles');
+    const interimEl  = document.getElementById('cam-interim');
+    const camDot     = document.getElementById('cam-dot');
+    const camTxt     = document.getElementById('cam-txt');
+    const micBtn     = document.getElementById('cam-mic');
+    const flipBtn    = document.getElementById('cam-flip');
+    const clearBtn   = document.getElementById('cam-clear');
+
+    let stream = null;
+    let useFront = true;
+    let isRecording = false;
+    let rec = null;
+    let bubbleHistory = [];
+    const MAX_BUBBLES = 3;
+
+    // Start camera
+    async function startCamera() {
+      try {
+        if (stream) stream.getTracks().forEach(t => t.stop());
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: useFront ? 'user' : 'environment' },
+          audio: false
+        });
+        video.srcObject = stream;
+        // Mirror only front camera
+        video.style.transform = useFront ? 'scaleX(-1)' : 'none';
+        camDot.className = 'dot';
+        camTxt.textContent = '📷 就绪';
+      } catch (e) {
+        camDot.className = 'dot';
+        camTxt.textContent = '摄像头不可用';
+        video.style.display = 'none';
+        // Still allow mic-only mode
+      }
+    }
+
+    // Add a final bubble
+    function addCamBubble(text) {
+      if (!text) return;
+
+      // Push to history
+      bubbleHistory.push(text);
+
+      // Rebuild bubble list
+      bubblesEl.innerHTML = '';
+      const recent = bubbleHistory.slice(-MAX_BUBBLES);
+      recent.forEach((txt, i) => {
+        const el = document.createElement('div');
+        const isLatest = (i === recent.length - 1);
+        el.className = 'cam-bubble' + (isLatest ? '' : ' old');
+        el.textContent = txt;
+        bubblesEl.prepend(el); // newest at bottom (column-reverse)
+        // Animate in latest bubble
+        if (isLatest) {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => el.classList.add('show'));
+          });
+        }
+      });
+
+      interimEl.style.display = 'none';
+      interimEl.textContent = '';
+    }
+
+    // Speech recognition
+    function startRec() {
+      rec = buildSpeechRec(
+        lang,
+        (final) => addCamBubble(final),
+        (interim) => {
+          interimEl.textContent = interim;
+          interimEl.style.display = 'block';
+        },
+        (e) => {
+          camTxt.textContent = '语音错误: ' + e.error;
+          stopRec();
+        },
+        () => { if (isRecording) try { rec.start(); } catch(_) {} }
+      );
+
+      if (!rec) {
+        camTxt.textContent = '不支持语音识别';
+        return;
+      }
+
+      isRecording = true;
+      micBtn.classList.add('recording');
+      micBtn.textContent = '⏹️';
+      camDot.className = 'dot live';
+      camTxt.textContent = '🔴 识别中…';
+      try { rec.start(); } catch(_) {}
+    }
+
+    function stopRec() {
+      isRecording = false;
+      micBtn.classList.remove('recording');
+      micBtn.textContent = '🎙️';
+      camDot.className = 'dot';
+      camTxt.textContent = '📷 就绪';
+      interimEl.style.display = 'none';
+      try { rec && rec.stop(); } catch(_) {}
+    }
+
+    micBtn.addEventListener('click', () => isRecording ? stopRec() : startRec());
+
+    flipBtn.addEventListener('click', () => {
+      useFront = !useFront;
+      startCamera();
+    });
+
+    clearBtn.addEventListener('click', () => {
+      bubbleHistory = [];
+      bubblesEl.innerHTML = '';
+      interimEl.style.display = 'none';
+    });
+
+    startCamera();
+    return;
+  }
+
+  /* ═══════════════════════════════════════════
+     RECORD MODE — Audio only
+  ═══════════════════════════════════════════ */
   if (mode === 'record') {
     document.getElementById('root').innerHTML = `
       <div class="hdr">
-        <span class="hdr-icon">🎙️</span>
+        <span>🎙️</span>
         <span class="hdr-title">实时气泡字幕</span>
-        <span class="hdr-badge" id="lang-badge">${lang}</span>
+        <span class="hdr-badge">${lang}</span>
       </div>
-      <div class="stage" id="stage">
+      <div class="stage"><div class="stage-bg">
         <div class="zone z-center" id="z-center"></div>
         <div class="interim-bubble" id="interim"></div>
-      </div>
-      <div class="rec-ctrl">
-        <button class="rec-clear" id="btn-clear">清空</button>
-        <button class="mic-btn" id="mic-btn" title="点击开始/停止录音">🎙️</button>
+      </div></div>
+      <div class="ctrl">
+        <button class="clr-btn" id="btn-clear">清空</button>
+        <button class="mic-btn" id="mic-btn">🎙️</button>
         <div class="rec-status" id="rec-status">点击麦克风<br>开始录音</div>
       </div>
     `;
@@ -217,149 +486,84 @@
     const interimEl = document.getElementById('interim');
     const zone      = document.getElementById('z-center');
     const btnClear  = document.getElementById('btn-clear');
-
-    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRec) {
-      document.getElementById('root').innerHTML =
-        '<div class="center-msg"><div class="icon">⚠️</div><div>此设备不支持 Web Speech API<br>请升级浏览器或改用文字输入模式</div></div>';
-      return;
-    }
-
-    const rec = new SpeechRec();
-    rec.lang = lang;
-    rec.continuous = true;
-    rec.interimResults = true;
-
-    let isRecording = false;
-    let bubbleCount = 0;
-    const COLORS = ['A', 'B', 'C', 'D'];
+    const COLORS    = ['A','B','C','D'];
+    let count = 0, isRec = false, rec = null;
 
     function addBubble(text) {
       if (!text.trim()) return;
-      const colorSlot = COLORS[bubbleCount % COLORS.length];
-      bubbleCount++;
-
+      const slot = COLORS[count++ % 4];
       const el = document.createElement('div');
-      el.className = `bubble sp-${colorSlot} pos-center`;
+      el.className = `bubble sp-${slot} pos-center`;
       el.textContent = text;
       zone.appendChild(el);
-      void el.offsetHeight; // force reflow
+      void el.offsetHeight;
       el.classList.add('anim-center');
-
-      // Keep max 4 bubbles
-      while (zone.children.length > 4) {
-        const old = zone.children[0];
-        old.classList.add('anim-out');
-        setTimeout(() => old.remove(), 230);
-      }
+      while (zone.children.length > 4) { const o=zone.children[0]; o.classList.add('anim-out'); setTimeout(()=>o.remove(),230); }
     }
 
-    rec.onresult = (e) => {
-      let interim = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) {
-          addBubble(e.results[i][0].transcript);
-          interimEl.style.display = 'none';
-          interimEl.textContent = '';
-        } else {
-          interim += e.results[i][0].transcript;
-        }
-      }
-      if (interim) {
-        interimEl.textContent = interim;
-        interimEl.style.display = 'block';
-      }
-    };
-
-    rec.onerror = (e) => {
-      recStatus.textContent = '错误：' + e.error;
-      stopRecording();
-    };
-
-    rec.onend = () => {
-      if (isRecording) {
-        // Auto-restart if still supposed to be recording
-        try { rec.start(); } catch(_) {}
-      }
-    };
-
-    function startRecording() {
-      isRecording = true;
-      micBtn.classList.add('recording');
-      micBtn.textContent = '⏹️';
-      recStatus.innerHTML = '录音中…<br>说话吧';
-      try { rec.start(); } catch(_) {}
+    function startRec() {
+      rec = buildSpeechRec(lang,
+        (t) => { addBubble(t); interimEl.style.display='none'; interimEl.textContent=''; },
+        (t) => { interimEl.textContent=t; interimEl.style.display='block'; },
+        (e) => { recStatus.textContent='错误:'+e.error; stopRec(); },
+        () => { if(isRec) try{rec.start();}catch(_){} }
+      );
+      if (!rec) { recStatus.textContent='不支持语音识别'; return; }
+      isRec=true; micBtn.classList.add('recording'); micBtn.textContent='⏹️';
+      recStatus.innerHTML='录音中…<br>说话吧';
+      try{rec.start();}catch(_){}
     }
 
-    function stopRecording() {
-      isRecording = false;
-      micBtn.classList.remove('recording');
-      micBtn.textContent = '🎙️';
-      recStatus.innerHTML = '点击麦克风<br>开始录音';
-      interimEl.style.display = 'none';
-      interimEl.textContent = '';
-      try { rec.stop(); } catch(_) {}
+    function stopRec() {
+      isRec=false; micBtn.classList.remove('recording'); micBtn.textContent='🎙️';
+      recStatus.innerHTML='点击麦克风<br>开始录音';
+      interimEl.style.display='none';
+      try{rec&&rec.stop();}catch(_){}
     }
 
-    micBtn.addEventListener('click', () => {
-      isRecording ? stopRecording() : startRecording();
-    });
-
-    btnClear.addEventListener('click', () => {
-      zone.innerHTML = '';
-      bubbleCount = 0;
-      interimEl.style.display = 'none';
-    });
-
-    return; // End of record mode
+    micBtn.addEventListener('click', ()=> isRec ? stopRec() : startRec());
+    btnClear.addEventListener('click', ()=>{ zone.innerHTML=''; count=0; interimEl.style.display='none'; });
+    return;
   }
 
-  /* ══════════════════════════════════════════════
-     PLAY MODE  — Timestamp-synced playback
-  ══════════════════════════════════════════════ */
+  /* ═══════════════════════════════════════════
+     PLAY MODE — Timestamp playback
+  ═══════════════════════════════════════════ */
   const raw = params.get('data');
   if (!raw) {
-    document.getElementById('root').innerHTML =
-      '<div class="center-msg"><div class="icon">⚠️</div><div>无字幕数据</div></div>';
+    document.getElementById('root').innerHTML = '<div class="center-msg"><div class="icon">⚠️</div><div>无字幕数据</div></div>';
     return;
   }
-
   let data;
   try { data = JSON.parse(decodeURIComponent(raw)); }
-  catch (e) {
-    document.getElementById('root').innerHTML =
-      `<div class="center-msg"><div class="icon">❌</div><div>数据解析失败</div></div>`;
-    return;
-  }
+  catch(e) { document.getElementById('root').innerHTML = '<div class="center-msg"><div class="icon">❌</div><div>数据解析失败</div></div>'; return; }
 
-  const segments  = data.segments || [];
-  const totalDur  = data.duration || segments[segments.length - 1]?.end || 60;
-  const title     = data.title || '气泡字幕';
-
-  const spList    = [...new Set(segments.map(s => s.speaker || 'A'))];
-  const colorMap  = {};
-  spList.forEach((sp, i) => { colorMap[sp] = ['A','B','C','D'][i % 4]; });
-  const hexColor  = { A:'#5865F2', B:'#27AE60', C:'#E91E8C', D:'#F39C12' };
+  const segs     = data.segments || [];
+  const totalDur = data.duration || segs[segs.length-1]?.end || 60;
+  const title    = data.title || '气泡字幕';
+  const spList   = [...new Set(segs.map(s=>s.speaker||'A'))];
+  const colorMap = {}; spList.forEach((sp,i)=>{ colorMap[sp]=['A','B','C','D'][i%4]; });
+  const hexColor = {A:'#5865F2',B:'#27AE60',C:'#E91E8C',D:'#F39C12'};
 
   document.getElementById('root').innerHTML = `
     <div class="hdr">
-      <span class="hdr-icon">🎬</span>
+      <span>🎬</span>
       <span class="hdr-title">${title}</span>
-      <span class="hdr-badge">${segments.length} 段</span>
+      <span class="hdr-badge">${segs.length} 段</span>
     </div>
-    <div class="stage" id="stage">
+    <div class="stage"><div class="stage-bg">
       <div class="zone z-left"   id="z-left"></div>
       <div class="zone z-right"  id="z-right"></div>
       <div class="zone z-center" id="z-center"></div>
       <div class="zone z-top"    id="z-top"></div>
       <div class="legend" id="legend"></div>
-    </div>
+    </div></div>
     <div class="ctrl">
       <button class="btn btn-sm" id="btn-restart">↩</button>
       <button class="btn btn-play" id="btn-play">▶</button>
       <div class="prog-col">
         <div class="prog-track" id="prog-track">
-          <div class="prog-fill"  id="prog-fill"></div>
+          <div class="prog-fill" id="prog-fill"></div>
           <div class="prog-thumb" id="prog-thumb"></div>
         </div>
         <div class="time-row"><span id="t-cur">0:00</span><span id="t-tot">${fmt(totalDur)}</span></div>
@@ -368,120 +572,50 @@
     </div>
   `;
 
-  // Legend
   const legendEl = document.getElementById('legend');
   spList.forEach(sp => {
-    const slot = colorMap[sp];
-    legendEl.innerHTML += `<div class="leg-item"><div class="leg-dot" style="background:${hexColor[slot]}"></div><span>说话人 ${sp}</span></div>`;
+    legendEl.innerHTML += `<div class="leg-item"><div class="leg-dot" style="background:${hexColor[colorMap[sp]]}"></div><span>说话人 ${sp}</span></div>`;
   });
 
-  // State
-  let curTime = 0, playing = false, lastTs = null, rafId = null;
-  let speed = 1;
-  const SPEEDS = [0.5, 1, 1.5, 2];
-  let spdIdx = 1;
-  const active = new Map();
+  let curTime=0, playing=false, lastTs=null, rafId=null, speed=1;
+  const SPEEDS=[0.5,1,1.5,2]; let spdIdx=1;
+  const active=new Map();
 
-  function fmt(s) { return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'); }
+  function fmt(s){ return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'); }
+  function zoneEl(pos){ const p=(pos||'center').toLowerCase(); if(p==='left')return document.getElementById('z-left'); if(p==='right')return document.getElementById('z-right'); if(p==='top')return document.getElementById('z-top'); return document.getElementById('z-center'); }
+  function animCls(pos){ const p=(pos||'center').toLowerCase(); if(p==='left')return 'anim-left'; if(p==='right')return 'anim-right'; if(p==='top')return 'anim-top'; return 'anim-center'; }
 
-  function zoneEl(pos) {
-    const p = (pos||'center').toLowerCase();
-    if (p==='left')  return document.getElementById('z-left');
-    if (p==='right') return document.getElementById('z-right');
-    if (p==='top')   return document.getElementById('z-top');
-    return document.getElementById('z-center');
-  }
-
-  function animClass(pos) {
-    const p = (pos||'center').toLowerCase();
-    if (p==='left')  return 'anim-left';
-    if (p==='right') return 'anim-right';
-    if (p==='top')   return 'anim-top';
-    return 'anim-center';
-  }
-
-  function showBubble(seg, idx) {
-    if (active.has(idx)) return;
-    const zone = zoneEl(seg.position);
-    const slot = colorMap[seg.speaker||'A'] || 'A';
-    const pos  = (seg.position||'center').toLowerCase();
-    const el   = document.createElement('div');
-    el.className = `bubble sp-${slot} pos-${pos}`;
-    el.textContent = seg.text;
+  function showBubble(seg,idx){
+    if(active.has(idx))return;
+    const zone=zoneEl(seg.position), slot=colorMap[seg.speaker||'A']||'A', pos=(seg.position||'center').toLowerCase();
+    const el=document.createElement('div');
+    el.className=`bubble sp-${slot} pos-${pos}`;
+    el.textContent=seg.text;
     zone.appendChild(el);
     void el.offsetHeight;
-    el.classList.add(animClass(pos));
-    while (zone.children.length > 2) zone.children[0].remove();
-    active.set(idx, el);
+    el.classList.add(animCls(pos));
+    while(zone.children.length>2) zone.children[0].remove();
+    active.set(idx,el);
   }
+  function hideBubble(idx){ const el=active.get(idx); if(!el)return; active.delete(idx); el.classList.add('anim-out'); setTimeout(()=>el.remove(),240); }
+  function clearAll(){ active.forEach((_,idx)=>{ const el=active.get(idx); if(el)el.remove(); }); active.clear(); ['z-left','z-right','z-center','z-top'].forEach(id=>{ const z=document.getElementById(id); if(z)z.innerHTML=''; }); }
 
-  function hideBubble(idx) {
-    const el = active.get(idx);
-    if (!el) return;
-    active.delete(idx);
-    el.classList.add('anim-out');
-    setTimeout(() => el.remove(), 240);
+  function updateUI(){
+    const pct=totalDur>0?(curTime/totalDur)*100:0;
+    document.getElementById('prog-fill').style.width=pct+'%';
+    document.getElementById('prog-thumb').style.left=pct+'%';
+    document.getElementById('t-cur').textContent=fmt(curTime);
+    segs.forEach((seg,idx)=>{ const on=curTime>=seg.start&&curTime<seg.end; if(on&&!active.has(idx))showBubble(seg,idx); if(!on&&active.has(idx))hideBubble(idx); });
   }
+  function tick(ts){ if(!playing)return; if(lastTs!==null)curTime+=(ts-lastTs)/1000*speed; lastTs=ts; if(curTime>=totalDur){curTime=totalDur;playing=false;document.getElementById('btn-play').textContent='▶';lastTs=null;updateUI();return;} updateUI(); rafId=requestAnimationFrame(tick); }
+  function play(){ playing=true; document.getElementById('btn-play').textContent='⏸'; lastTs=null; rafId=requestAnimationFrame(tick); }
+  function pause(){ playing=false; document.getElementById('btn-play').textContent='▶'; lastTs=null; if(rafId)cancelAnimationFrame(rafId); }
+  function restart(){ pause(); curTime=0; clearAll(); updateUI(); setTimeout(play,150); }
 
-  function clearAll() {
-    active.forEach((_, idx) => { const el=active.get(idx); if(el) el.remove(); });
-    active.clear();
-    ['z-left','z-right','z-center','z-top'].forEach(id => { const z=document.getElementById(id); if(z) z.innerHTML=''; });
-  }
-
-  function updateUI() {
-    const pct = totalDur > 0 ? (curTime/totalDur)*100 : 0;
-    document.getElementById('prog-fill').style.width  = pct + '%';
-    document.getElementById('prog-thumb').style.left  = pct + '%';
-    document.getElementById('t-cur').textContent = fmt(curTime);
-    segments.forEach((seg, idx) => {
-      const on = curTime >= seg.start && curTime < seg.end;
-      if (on && !active.has(idx))  showBubble(seg, idx);
-      if (!on && active.has(idx))  hideBubble(idx);
-    });
-  }
-
-  function tick(ts) {
-    if (!playing) return;
-    if (lastTs !== null) curTime += (ts-lastTs)/1000*speed;
-    lastTs = ts;
-    if (curTime >= totalDur) {
-      curTime = totalDur; playing = false;
-      document.getElementById('btn-play').textContent = '▶';
-      lastTs = null; updateUI(); return;
-    }
-    updateUI();
-    rafId = requestAnimationFrame(tick);
-  }
-
-  function play() {
-    playing = true;
-    document.getElementById('btn-play').textContent = '⏸';
-    lastTs = null; rafId = requestAnimationFrame(tick);
-  }
-
-  function pause() {
-    playing = false;
-    document.getElementById('btn-play').textContent = '▶';
-    lastTs = null; if (rafId) cancelAnimationFrame(rafId);
-  }
-
-  function restart() {
-    pause(); curTime = 0; clearAll(); updateUI(); setTimeout(play, 150);
-  }
-
-  document.getElementById('btn-play').addEventListener('click', () => playing ? pause() : play());
-  document.getElementById('btn-restart').addEventListener('click', restart);
-  document.getElementById('speed-btn').addEventListener('click', () => {
-    spdIdx = (spdIdx+1) % SPEEDS.length;
-    speed = SPEEDS[spdIdx];
-    document.getElementById('speed-btn').textContent = speed + '×';
-  });
-  document.getElementById('prog-track').addEventListener('click', e => {
-    const rect = document.getElementById('prog-track').getBoundingClientRect();
-    curTime = Math.max(0, Math.min(1, (e.clientX-rect.left)/rect.width)) * totalDur;
-    clearAll(); updateUI();
-  });
+  document.getElementById('btn-play').addEventListener('click',()=>playing?pause():play());
+  document.getElementById('btn-restart').addEventListener('click',restart);
+  document.getElementById('speed-btn').addEventListener('click',()=>{ spdIdx=(spdIdx+1)%SPEEDS.length; speed=SPEEDS[spdIdx]; document.getElementById('speed-btn').textContent=speed+'×'; });
+  document.getElementById('prog-track').addEventListener('click',e=>{ const rect=document.getElementById('prog-track').getBoundingClientRect(); curTime=Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width))*totalDur; clearAll(); updateUI(); });
 
   updateUI();
 })();

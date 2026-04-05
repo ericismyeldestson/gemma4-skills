@@ -7,55 +7,47 @@
 window['ai_edge_gallery_get_result'] = async (data) => {
   try {
     const parsed = JSON.parse(data);
-    const mode = parsed.mode || 'play';
+    const mode   = parsed.mode || 'camera';
+    const lang   = encodeURIComponent(parsed.lang || 'zh-CN');
 
-    // ── Mode 1: Live recording via Web Speech API ──
+    // ── Mode 1: Camera AR overlay ──
+    if (mode === 'camera') {
+      return JSON.stringify({
+        result: '📷 AR 气泡字幕已启动，对着摄像头说话吧！',
+        webview: { url: `webview.html?mode=camera&lang=${lang}`, aspectRatio: 0.75 }
+      });
+    }
+
+    // ── Mode 2: Audio only ──
     if (mode === 'record') {
-      const lang = parsed.lang || 'zh-CN';
       return JSON.stringify({
-        result: '🎙️ 气泡字幕录音器已启动，点击麦克风开始说话！',
-        webview: {
-          url: `webview.html?mode=record&lang=${encodeURIComponent(lang)}`,
-          aspectRatio: 1.5
-        }
+        result: '🎙️ 录音气泡字幕已启动，点击麦克风开始说话！',
+        webview: { url: `webview.html?mode=record&lang=${lang}`, aspectRatio: 1.5 }
       });
     }
 
-    // ── Mode 2: Playback from transcript data ──
-    if (!parsed.segments || !Array.isArray(parsed.segments) || parsed.segments.length === 0) {
-      // No segments: default to record mode
+    // ── Mode 3: Playback ──
+    const segs = parsed.segments;
+    if (!segs || !Array.isArray(segs) || segs.length === 0) {
+      // No data → fall back to camera
       return JSON.stringify({
-        result: '🎙️ 未检测到字幕数据，启动实时录音模式。',
-        webview: {
-          url: 'webview.html?mode=record&lang=zh-CN',
-          aspectRatio: 1.5
-        }
+        result: '📷 未检测到字幕数据，启动 AR 摄像头模式。',
+        webview: { url: `webview.html?mode=camera&lang=${lang}`, aspectRatio: 0.75 }
       });
     }
 
-    // Validate and fill defaults
-    parsed.segments = parsed.segments.map(seg => ({
-      start:    seg.start,
-      end:      seg.end,
-      text:     seg.text,
-      speaker:  seg.speaker  || 'A',
-      position: seg.position || 'center'
+    parsed.segments = segs.map(s => ({
+      start: s.start, end: s.end, text: s.text,
+      speaker: s.speaker || 'A', position: s.position || 'center'
     }));
-    if (!parsed.duration) {
-      parsed.duration = parsed.segments[parsed.segments.length - 1].end;
-    }
+    if (!parsed.duration) parsed.duration = segs[segs.length - 1].end;
 
     const encoded = encodeURIComponent(JSON.stringify(parsed));
-    const count   = parsed.segments.length;
-    const dur     = parsed.duration;
-    const mm = Math.floor(dur / 60), ss = Math.round(dur % 60);
+    const mm = Math.floor(parsed.duration / 60), ss = Math.round(parsed.duration % 60);
 
     return JSON.stringify({
-      result: `✅ 已生成 ${count} 段气泡字幕，时长 ${mm}分${ss}秒。`,
-      webview: {
-        url: `webview.html?mode=play&data=${encoded}`,
-        aspectRatio: 1.5
-      }
+      result: `✅ 已生成 ${segs.length} 段气泡字幕，时长 ${mm}分${ss}秒。`,
+      webview: { url: `webview.html?mode=play&data=${encoded}`, aspectRatio: 1.5 }
     });
 
   } catch (e) {

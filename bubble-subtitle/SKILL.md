@@ -1,6 +1,6 @@
 ---
 name: bubble-subtitle
-description: Real-time animated speech bubble subtitles. Records audio and transcribes speech directly in the browser using Web Speech API, displaying comic-style bubbles as you speak.
+description: Real-time animated speech bubble subtitles. Three modes - camera AR overlay, audio-only recording, or transcript playback. Uses Web Speech API and camera directly in the browser.
 ---
 
 # Bubble Subtitle
@@ -9,30 +9,33 @@ IMPORTANT: The ONLY tool you may call is `run_js`. Never call any other action o
 
 ## When to activate
 
-Activate when the user wants to:
-- Record speech and see bubble subtitles
-- Generate bubble animation from a text transcript
-- Try the speech bubble subtitle player
+Activate when the user wants:
+- Speech bubbles over camera / live video / AR subtitles → use mode "camera"
+- Voice recording with bubble animation (no video) → use mode "record"
+- Animate a text transcript with timestamps → use mode "play"
 
-## Mode 1 — Live recording (user wants to record audio)
+## Mode 1 — Camera AR (default for video/camera requests)
 
-When the user wants to record audio or use the microphone, call `run_js` immediately with:
+When the user mentions camera, video, face, AR, or live overlay, call `run_js` immediately with:
+
+data = {"mode":"camera","lang":"zh-CN"}
+
+## Mode 2 — Audio only recording
+
+When the user wants audio recording without camera, call `run_js` with:
 
 data = {"mode":"record","lang":"zh-CN"}
 
-Use "lang":"en-US" if the user is speaking English, "lang":"ja-JP" for Japanese, etc.
-Default to "zh-CN" unless the user specifies another language.
+## Mode 3 — Transcript playback
 
-Do NOT wait for audio. Do NOT ask the user to provide audio. Just call run_js right away.
+When the user provides timestamped text, call `run_js` with:
 
-## Mode 2 — Transcript animation (user provides text with timestamps)
+data = {"mode":"play","title":"title","duration":SECONDS,"segments":[{"start":0.0,"end":2.5,"text":"text","speaker":"A","position":"left"}]}
 
-When the user provides a written transcript with timing information, call `run_js` with:
+## Language codes
 
-data = {"mode":"play","title":"optional title","duration":TOTAL_SECONDS,"segments":[{"start":0.0,"end":2.5,"text":"spoken text","speaker":"A","position":"left"},{"start":3.1,"end":5.8,"text":"next sentence","speaker":"B","position":"right"}]}
-
-Position rules: one speaker → "center", two speakers → "left"/"right", three+ → cycle "left"/"right"/"top"
+Default to "zh-CN". Use "en-US" for English, "ja-JP" for Japanese, "ko-KR" for Korean.
 
 ## Default behavior
 
-If the user says anything like "start", "try it", "let's go", "bubble subtitle", or asks about this skill — call run_js with mode=record immediately. Do not ask questions first.
+If the user says "start", "try", "go", "bubble subtitle", or anything vague — default to camera mode. Call run_js immediately, do not ask clarifying questions.
