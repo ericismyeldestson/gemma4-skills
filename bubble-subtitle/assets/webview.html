@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<!-- Copyright 2026 Google LLC. Licensed under Apache 2.0 -->
+<html lang="zh">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>气泡字幕</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --color-A: #5865F2;
+      --color-B: #27AE60;
+      --color-C: #E91E8C;
+      --color-D: #F39C12;
+      --bg: #0d0d14;
+      --surface: rgba(255,255,255,0.06);
+      --text-dim: rgba(255,255,255,0.45);
+    }
+
+    html, body { height: 100%; margin: 0; }
+
+    body {
+      background: var(--bg);
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif;
+      user-select: none;
+    }
+
+    /* ── 三段式固定布局，完全不依赖 flex ── */
+    --hdr-h: 42px;
+    --ctl-h: 68px;
+
+    /* ── Header ── */
+    .header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 42px;
+      padding: 0 14px;
+      background: rgba(0,0,0,0.55);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      z-index: 10;
+    }
+    .header-icon { font-size: 16px; }
+    .header-title {
+      flex: 1;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .header-count {
+      font-size: 11px;
+      color: var(--text-dim);
+      background: var(--surface);
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    /* ── Stage ── */
+    .stage {
+      position: fixed;
+      top: 42px; left: 0; right: 0; bottom: 68px;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse at 20% 50%, rgba(88,101,242,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 50%, rgba(39,174,96,0.08)  0%, transparent 60%);
+    }
+
+    /* ── Zones ── */
+    .zone {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .zone-left   { left: 10px; right: 52%; top: 10%; bottom: 10%; justify-content: center; align-items: flex-start; }
+    .zone-right  { right: 10px; left: 52%; top: 10%; bottom: 10%; justify-content: center; align-items: flex-end; }
+    .zone-center { left: 12%; right: 12%; top: 15%; bottom: 15%; justify-content: center; align-items: center; }
+    .zone-top    { left: 10%; right: 10%; top: 6%; height: 28%; justify-content: flex-start; align-items: center; }
+
+    /* ── Bubble ── */
+    .bubble {
+      position: relative;
+      max-width: 100%;
+      padding: 9px 14px;
+      border-radius: 20px;
+      font-size: 14px;
+      line-height: 1.55;
+      font-weight: 500;
+      word-break: break-word;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.08) inset;
+      opacity: 0;
+      transform-origin: center bottom;
+    }
+
+    /* Bubble tail via pseudo-element */
+    .bubble::after {
+      content: '';
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      bottom: -5px;
+      clip-path: polygon(0 0, 100% 0, 50% 100%);
+    }
+    .bubble.pos-left::after  { left: 18px; }
+    .bubble.pos-right::after { right: 18px; }
+    .bubble.pos-center::after,
+    .bubble.pos-top::after   { display: none; }
+
+    /* Speaker colors */
+    .sp-A { background: var(--color-A); }
+    .sp-A::after { background: var(--color-A); }
+    .sp-B { background: var(--color-B); }
+    .sp-B::after { background: var(--color-B); }
+    .sp-C { background: var(--color-C); }
+    .sp-C::after { background: var(--color-C); }
+    .sp-D { background: var(--color-D); color: #1a1a1a; }
+    .sp-D::after { background: var(--color-D); }
+
+    /* ── Animations ── */
+    @keyframes inLeft {
+      0%   { opacity: 0; transform: translateX(-18px) scale(0.82); }
+      55%  { transform: translateX(3px) scale(1.04); }
+      100% { opacity: 1; transform: translateX(0) scale(1); }
+    }
+    @keyframes inRight {
+      0%   { opacity: 0; transform: translateX(18px) scale(0.82); }
+      55%  { transform: translateX(-3px) scale(1.04); }
+      100% { opacity: 1; transform: translateX(0) scale(1); }
+    }
+    @keyframes inCenter {
+      0%   { opacity: 0; transform: scale(0.72); }
+      65%  { transform: scale(1.06); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    @keyframes inTop {
+      0%   { opacity: 0; transform: translateY(-14px) scale(0.88); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes out {
+      0%   { opacity: 1; transform: scale(1); }
+      100% { opacity: 0; transform: scale(0.82); }
+    }
+
+    .anim-in-left   { animation: inLeft   0.38s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+    .anim-in-right  { animation: inRight  0.38s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+    .anim-in-center { animation: inCenter 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+    .anim-in-top    { animation: inTop    0.36s ease-out forwards; }
+    .anim-out       { animation: out 0.22s ease-in forwards; }
+
+    /* ── Speaker Legend ── */
+    .legend {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    /* ── Controls ── */
+    .controls {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 68px;
+      padding: 10px 14px;
+      background: rgba(0,0,0,0.55);
+      border-top: 1px solid rgba(255,255,255,0.07);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 10;
+    }
+
+    .btn {
+      background: var(--surface);
+      border: none;
+      color: #fff;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.9); }
+    .btn-sm { width: 32px; height: 32px; font-size: 13px; }
+    .btn-play { width: 42px; height: 42px; font-size: 18px; background: var(--color-A); }
+    .btn:hover { filter: brightness(1.15); }
+
+    .progress-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .progress-track {
+      height: 4px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 2px;
+      cursor: pointer;
+      position: relative;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--color-A);
+      border-radius: 2px;
+      width: 0%;
+      pointer-events: none;
+      transition: width 0.08s linear;
+    }
+    .progress-thumb {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 10px;
+      height: 10px;
+      background: #fff;
+      border-radius: 50%;
+      pointer-events: none;
+      left: 0%;
+      box-shadow: 0 0 0 2px rgba(88,101,242,0.6);
+      transition: left 0.08s linear;
+    }
+
+    .time-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+
+    .speed-btn {
+      background: var(--surface);
+      border: none;
+      color: rgba(255,255,255,0.7);
+      padding: 4px 9px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 700;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .speed-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+    /* ── Error / Loading ── */
+    .center-msg {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100dvh;
+      gap: 12px;
+      text-align: center;
+      padding: 24px;
+      color: var(--text-dim);
+      font-size: 14px;
+    }
+    .center-msg .icon { font-size: 36px; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+(function () {
+  /* ── Parse data from URL ── */
+  const params = new URLSearchParams(location.search);
+  const raw = params.get('data');
+
+  if (!raw) {
+    document.getElementById('root').innerHTML =
+      '<div class="center-msg"><div class="icon">⚠️</div><div>无字幕数据<br>请通过技能重新生成</div></div>';
+    return;
+  }
+
+  let data;
+  try { data = JSON.parse(decodeURIComponent(raw)); }
+  catch (e) {
+    document.getElementById('root').innerHTML =
+      `<div class="center-msg"><div class="icon">❌</div><div>数据解析失败<br>${e.message}</div></div>`;
+    return;
+  }
+
+  const segments     = data.segments || [];
+  const totalDur     = data.duration || (segments.length ? segments[segments.length - 1].end : 60);
+  const title        = data.title || '气泡字幕';
+
+  /* Speaker → color slot (A/B/C/D) */
+  const speakerList  = [...new Set(segments.map(s => s.speaker || 'A'))];
+  const slots        = ['A', 'B', 'C', 'D'];
+  const speakerColor = {};
+  speakerList.forEach((sp, i) => { speakerColor[sp] = slots[i % 4]; });
+
+  /* ── Build DOM ── */
+  document.getElementById('root').innerHTML = `
+    <div class="header">
+      <span class="header-icon">🎬</span>
+      <span class="header-title">${title}</span>
+      <span class="header-count">${segments.length} 段</span>
+    </div>
+
+    <div class="stage" id="stage">
+      <div class="zone zone-left"   id="z-left"></div>
+      <div class="zone zone-right"  id="z-right"></div>
+      <div class="zone zone-center" id="z-center"></div>
+      <div class="zone zone-top"    id="z-top"></div>
+      <div class="legend" id="legend"></div>
+    </div>
+
+    <div class="controls">
+      <button class="btn btn-sm" id="btn-restart" title="重播">↩</button>
+      <button class="btn btn-play" id="btn-play">▶</button>
+      <div class="progress-col">
+        <div class="progress-track" id="prog-track">
+          <div class="progress-fill"  id="prog-fill"></div>
+          <div class="progress-thumb" id="prog-thumb"></div>
+        </div>
+        <div class="time-row">
+          <span id="t-cur">0:00</span>
+          <span id="t-tot">${fmt(totalDur)}</span>
+        </div>
+      </div>
+      <button class="speed-btn" id="speed-btn">1×</button>
+    </div>
+  `;
+
+  /* ── Speaker legend ── */
+  const legendEl = document.getElementById('legend');
+  const colorHex = { A: '#5865F2', B: '#27AE60', C: '#E91E8C', D: '#F39C12' };
+  speakerList.forEach(sp => {
+    const slot = speakerColor[sp];
+    legendEl.innerHTML += `
+      <div class="legend-item">
+        <div class="legend-dot" style="background:${colorHex[slot]}"></div>
+        <span>说话人 ${sp}</span>
+      </div>`;
+  });
+
+  /* ── State ── */
+  let curTime  = 0;
+  let playing  = false;
+  let lastTs   = null;
+  let rafId    = null;
+  let speed    = 1;
+  const SPEEDS = [0.5, 1, 1.5, 2];
+  let spdIdx   = 1;
+
+  /* active bubbles: Map<segIndex, HTMLElement> */
+  const active = new Map();
+
+  /* ── Helpers ── */
+  function fmt(s) {
+    const m = Math.floor(s / 60);
+    return m + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+  }
+
+  function zoneEl(pos) {
+    const p = (pos || 'center').toLowerCase();
+    if (p === 'left')  return document.getElementById('z-left');
+    if (p === 'right') return document.getElementById('z-right');
+    if (p === 'top')   return document.getElementById('z-top');
+    return document.getElementById('z-center');
+  }
+
+  function inAnimClass(pos) {
+    const p = (pos || 'center').toLowerCase();
+    if (p === 'left')  return 'anim-in-left';
+    if (p === 'right') return 'anim-in-right';
+    if (p === 'top')   return 'anim-in-top';
+    return 'anim-in-center';
+  }
+
+  /* ── Bubble lifecycle ── */
+  function showBubble(seg, idx) {
+    if (active.has(idx)) return;
+    const zone  = zoneEl(seg.position);
+    const slot  = speakerColor[seg.speaker || 'A'] || 'A';
+    const pos   = (seg.position || 'center').toLowerCase();
+
+    const el = document.createElement('div');
+    el.className = `bubble sp-${slot} pos-${pos}`;
+    el.textContent = seg.text;
+    zone.appendChild(el);
+    // 强制 reflow 后再加动画 class，确保浏览器有初始状态可动画
+    void el.offsetHeight;
+    el.classList.add(inAnimClass(pos));
+
+    /* Cap zone at 2 visible bubbles: remove the oldest */
+    while (zone.children.length > 2) {
+      const old = zone.children[0];
+      old.remove();
+    }
+
+    active.set(idx, el);
+  }
+
+  function hideBubble(idx) {
+    const el = active.get(idx);
+    if (!el) return;
+    active.delete(idx);
+    el.classList.remove(...[...el.classList].filter(c => c.startsWith('anim-in')));
+    el.classList.add('anim-out');
+    setTimeout(() => el.remove(), 240);
+  }
+
+  function clearAllBubbles() {
+    active.forEach((_, idx) => {
+      const el = active.get(idx);
+      if (el) el.remove();
+    });
+    active.clear();
+    ['z-left','z-right','z-center','z-top'].forEach(id => {
+      const z = document.getElementById(id);
+      if (z) z.innerHTML = '';
+    });
+  }
+
+  /* ── Playback ── */
+  function updateUI() {
+    const pct = totalDur > 0 ? (curTime / totalDur) * 100 : 0;
+    document.getElementById('prog-fill').style.width  = pct + '%';
+    document.getElementById('prog-thumb').style.left  = pct + '%';
+    document.getElementById('t-cur').textContent = fmt(curTime);
+
+    segments.forEach((seg, idx) => {
+      const on = curTime >= seg.start && curTime < seg.end;
+      if (on && !active.has(idx))  showBubble(seg, idx);
+      if (!on && active.has(idx))  hideBubble(idx);
+    });
+  }
+
+  function tick(ts) {
+    if (!playing) return;
+    if (lastTs !== null) curTime += (ts - lastTs) / 1000 * speed;
+    lastTs = ts;
+
+    if (curTime >= totalDur) {
+      curTime = totalDur;
+      playing = false;
+      document.getElementById('btn-play').textContent = '▶';
+      lastTs = null;
+      updateUI();
+      return;
+    }
+
+    updateUI();
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function play() {
+    if (curTime >= totalDur) curTime = 0;
+    playing = true;
+    document.getElementById('btn-play').textContent = '⏸';
+    lastTs = null;
+    rafId  = requestAnimationFrame(tick);
+  }
+
+  function pause() {
+    playing = false;
+    document.getElementById('btn-play').textContent = '▶';
+    lastTs = null;
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  }
+
+  function restart() {
+    pause();
+    curTime = 0;
+    clearAllBubbles();
+    updateUI();
+    setTimeout(play, 150);
+  }
+
+  /* ── Controls ── */
+  document.getElementById('btn-play').addEventListener('click', () => {
+    playing ? pause() : play();
+  });
+
+  document.getElementById('btn-restart').addEventListener('click', restart);
+
+  document.getElementById('speed-btn').addEventListener('click', () => {
+    spdIdx = (spdIdx + 1) % SPEEDS.length;
+    speed  = SPEEDS[spdIdx];
+    document.getElementById('speed-btn').textContent = speed + '×';
+  });
+
+  document.getElementById('prog-track').addEventListener('click', e => {
+    const rect = document.getElementById('prog-track').getBoundingClientRect();
+    curTime = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) * totalDur;
+    clearAllBubbles();
+    updateUI();
+  });
+
+  /* ── Init ── */
+  updateUI();
+})();
+</script>
+</body>
+</html>

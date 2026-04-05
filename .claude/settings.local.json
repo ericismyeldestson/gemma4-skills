@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:developers.googleblog.com)",
+      "WebFetch(domain:ai.google.dev)",
+      "WebFetch(domain:github.com)",
+      "Bash(ollama --version)",
+      "Bash(ollama list:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(curl -sL https://api.github.com/repos/google-ai-edge/gallery/contents/skills/built-in)",
+      "Bash(python -c \"import sys,json; [print\\(f{i[''''name'''']} \\({i[''''type'''']}\\) \\) for i in json.loads\\(sys.stdin.read\\(\\)\\)]\")",
+      "WebFetch(domain:ainewssilo.com)",
+      "Bash(python3 -c \":*)",
+      "mcp__Windows-MCP__PowerShell",
+      "mcp__Claude_Preview__preview_start",
+      "mcp__plugin_chrome-devtools-mcp_chrome-devtools__navigate_page",
+      "mcp__plugin_chrome-devtools-mcp_chrome-devtools__evaluate_script",
+      "mcp__plugin_chrome-devtools-mcp_chrome-devtools__take_screenshot",
+      "Bash(git --version)",
+      "Bash(gh --version)",
+      "mcp__Desktop_Commander__start_process"
+    ]
+  }
+}
