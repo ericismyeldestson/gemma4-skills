@@ -1,50 +1,56 @@
 ---
 name: bubble-subtitle
-description: 将音频/视频中的语音转写为带时间戳的气泡字幕动画，支持多人对话识别与漫画气泡风格展示
+description: Transcribes speech from audio or video and displays animated comic-style speech bubble subtitles with timestamps
 ---
 
-# Bubble Subtitle（气泡字幕）
+# Bubble Subtitle
 
-将语音内容转写为动态气泡字幕，像漫画对话框一样逐句展示字幕内容。
+IMPORTANT: The ONLY tool you may call is `run_js`. Do NOT call any other action, function, or tool name such as "generate_subtitle_animation" or anything else. If you feel the urge to call a different function, stop and call `run_js` instead.
 
-## 触发条件
+## When to activate
 
-用户上传音频或视频文件，或请求"生成气泡字幕"、"帮我做字幕动画"时触发本技能。
+Activate when the user provides audio, video, or a timestamped transcript and asks for subtitles, captions, or bubble animation.
 
-## 你的工作步骤
+## Your exact two-step process
 
-1. **仔细分析**用户提供的音频/视频中的所有语音内容
-2. **转写文字**，精确记录每句话的起止时间（精确到 0.1 秒）
-3. **识别说话人**，用字母标记（A、B、C…），整个对话中保持一致
-4. **分配位置**，决定每位说话人的气泡显示位置：
-   - 只有一人：`"center"`
-   - 两人对话：第一位 `"left"`，第二位 `"right"`
-   - 三人以上：循环使用 `"left"`、`"right"`、`"top"`
-5. **调用 `run_js`** 工具（script: index.html），传入结构化数据
+### Step 1 — YOU transcribe the audio/video yourself
 
-## run_js 调用格式
+Use your built-in audio and video understanding to listen to the content.
+Identify every spoken sentence with its start and end time in seconds.
+Identify distinct speakers (label them A, B, C…).
 
-`data` 参数必须是如下格式的 JSON 字符串（不要换行）：
+Do NOT pass audio file paths or file references to any tool.
+Do NOT ask the user to transcribe — you do it yourself.
 
-```
-{"title":"内容标题","duration":总秒数,"segments":[{"start":0.0,"end":2.5,"text":"转写的文字","speaker":"A","position":"left"},{"start":3.1,"end":5.8,"text":"另一句话","speaker":"B","position":"right"}]}
-```
+### Step 2 — Call run_js with the transcript
 
-### 字段说明
+After you have finished transcribing, call the `run_js` tool with:
+- script: index.html
+- data: a compact JSON string (no line breaks) in the format below
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| title | string | 可选，内容标题 |
-| duration | number | 音频/视频总时长（秒） |
-| segments[].start | number | 该句开始时间（秒，精确0.1s） |
-| segments[].end | number | 该句结束时间（秒，精确0.1s） |
-| segments[].text | string | 转写文字内容 |
-| segments[].speaker | string | 说话人标记（A/B/C/D） |
-| segments[].position | string | 气泡位置（left/right/center/top） |
+## run_js data format
 
-## 转写规范
+{"title":"optional title","duration":TOTAL_SECONDS,"segments":[{"start":0.0,"end":2.5,"text":"transcribed text","speaker":"A","position":"left"},{"start":3.1,"end":5.8,"text":"next sentence","speaker":"B","position":"right"}]}
 
-- 每个片段建议 1～8 秒，超过 8 秒的长句可在自然停顿处拆分
-- 静音段不需要填充，两个 segment 之间可以有间隔
-- 如果用户直接提供带时间戳的文字稿，按格式整理后直接输出即可
-- 多语言内容按原语言转写，不要翻译
+## Position rules
+
+- One speaker → "center"
+- Two speakers → first speaker "left", second speaker "right"
+- Three or more → cycle through "left", "right", "top"
+
+## Timing rules
+
+- start and end are seconds, rounded to 0.1s
+- Each segment should be 1–8 seconds; split longer sentences at natural pauses
+- Silent gaps between segments are fine — do not pad them
+
+## Example call
+
+User provides a 10-second audio clip with two speakers.
+You transcribe it as:
+- 0.0–3.2s, speaker A: "Hello, how are you today?"
+- 4.0–7.5s, speaker B: "I'm doing great, thanks for asking!"
+- 8.0–10.0s, speaker A: "Wonderful!"
+
+Then you call run_js with:
+data = {"title":"Conversation","duration":10,"segments":[{"start":0.0,"end":3.2,"text":"Hello, how are you today?","speaker":"A","position":"left"},{"start":4.0,"end":7.5,"text":"I'm doing great, thanks for asking!","speaker":"B","position":"right"},{"start":8.0,"end":10.0,"text":"Wonderful!","speaker":"A","position":"left"}]}
