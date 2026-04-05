@@ -9,62 +9,42 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --color-A: #5865F2;
-      --color-B: #27AE60;
-      --color-C: #E91E8C;
-      --color-D: #F39C12;
+      --A: #5865F2; --B: #27AE60; --C: #E91E8C; --D: #F39C12;
       --bg: #0d0d14;
-      --surface: rgba(255,255,255,0.06);
-      --text-dim: rgba(255,255,255,0.45);
+      --dim: rgba(255,255,255,0.45);
+      --surf: rgba(255,255,255,0.07);
     }
 
-    html, body { height: 100%; margin: 0; }
+    html, body { height: 100%; }
 
     body {
       background: var(--bg);
       color: #fff;
       font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif;
+      position: fixed; inset: 0;
+      overflow: hidden;
       user-select: none;
     }
 
-    /* ── 三段式固定布局，完全不依赖 flex ── */
-    --hdr-h: 42px;
-    --ctl-h: 68px;
-
     /* ── Header ── */
-    .header {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      height: 42px;
+    .hdr {
+      position: fixed; top: 0; left: 0; right: 0; height: 42px;
       padding: 0 14px;
       background: rgba(0,0,0,0.55);
-      display: flex;
-      align-items: center;
-      gap: 8px;
       border-bottom: 1px solid rgba(255,255,255,0.07);
+      display: flex; align-items: center; gap: 8px;
       z-index: 10;
     }
-    .header-icon { font-size: 16px; }
-    .header-title {
-      flex: 1;
-      font-size: 13px;
-      font-weight: 600;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .header-count {
-      font-size: 11px;
-      color: var(--text-dim);
-      background: var(--surface);
-      padding: 2px 8px;
-      border-radius: 10px;
+    .hdr-icon { font-size: 16px; }
+    .hdr-title { flex: 1; font-size: 13px; font-weight: 600; }
+    .hdr-badge {
+      font-size: 11px; color: var(--dim);
+      background: var(--surf); padding: 2px 8px; border-radius: 10px;
     }
 
     /* ── Stage ── */
     .stage {
-      position: fixed;
-      top: 42px; left: 0; right: 0; bottom: 68px;
+      position: fixed; top: 42px; left: 0; right: 0; bottom: 68px;
       overflow: hidden;
       background:
         radial-gradient(ellipse at 20% 50%, rgba(88,101,242,0.08) 0%, transparent 60%),
@@ -72,210 +52,132 @@
     }
 
     /* ── Zones ── */
-    .zone {
-      position: absolute;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .zone-left   { left: 10px; right: 52%; top: 10%; bottom: 10%; justify-content: center; align-items: flex-start; }
-    .zone-right  { right: 10px; left: 52%; top: 10%; bottom: 10%; justify-content: center; align-items: flex-end; }
-    .zone-center { left: 12%; right: 12%; top: 15%; bottom: 15%; justify-content: center; align-items: center; }
-    .zone-top    { left: 10%; right: 10%; top: 6%; height: 28%; justify-content: flex-start; align-items: center; }
+    .zone { position: absolute; display: flex; flex-direction: column; gap: 8px; }
+    .z-left   { left: 10px; right: 52%; top: 10%; bottom: 10%; justify-content: center; align-items: flex-start; }
+    .z-right  { right: 10px; left: 52%; top: 10%; bottom: 10%; justify-content: center; align-items: flex-end; }
+    .z-center { left: 12%; right: 12%; top: 15%; bottom: 15%; justify-content: center; align-items: center; }
+    .z-top    { left: 10%; right: 10%; top: 6%; height: 28%; justify-content: flex-start; align-items: center; }
 
-    /* ── Bubble ── */
+    /* ── Bubbles ── */
     .bubble {
-      position: relative;
-      max-width: 100%;
-      padding: 9px 14px;
-      border-radius: 20px;
-      font-size: 14px;
-      line-height: 1.55;
-      font-weight: 500;
+      position: relative; max-width: 100%;
+      padding: 9px 14px; border-radius: 20px;
+      font-size: 14px; line-height: 1.55; font-weight: 500;
       word-break: break-word;
       box-shadow: 0 6px 24px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.08) inset;
-      opacity: 0;
-      transform-origin: center bottom;
+      opacity: 0; transform-origin: center bottom;
     }
-
-    /* Bubble tail via pseudo-element */
     .bubble::after {
-      content: '';
-      position: absolute;
-      width: 12px;
-      height: 12px;
-      bottom: -5px;
+      content: ''; position: absolute;
+      width: 12px; height: 12px; bottom: -5px;
       clip-path: polygon(0 0, 100% 0, 50% 100%);
     }
     .bubble.pos-left::after  { left: 18px; }
     .bubble.pos-right::after { right: 18px; }
-    .bubble.pos-center::after,
-    .bubble.pos-top::after   { display: none; }
+    .bubble.pos-center::after, .bubble.pos-top::after { display: none; }
 
-    /* Speaker colors */
-    .sp-A { background: var(--color-A); }
-    .sp-A::after { background: var(--color-A); }
-    .sp-B { background: var(--color-B); }
-    .sp-B::after { background: var(--color-B); }
-    .sp-C { background: var(--color-C); }
-    .sp-C::after { background: var(--color-C); }
-    .sp-D { background: var(--color-D); color: #1a1a1a; }
-    .sp-D::after { background: var(--color-D); }
+    .sp-A { background: var(--A); } .sp-A::after { background: var(--A); }
+    .sp-B { background: var(--B); } .sp-B::after { background: var(--B); }
+    .sp-C { background: var(--C); } .sp-C::after { background: var(--C); }
+    .sp-D { background: var(--D); color: #1a1a1a; } .sp-D::after { background: var(--D); }
 
-    /* ── Animations ── */
-    @keyframes inLeft {
-      0%   { opacity: 0; transform: translateX(-18px) scale(0.82); }
-      55%  { transform: translateX(3px) scale(1.04); }
-      100% { opacity: 1; transform: translateX(0) scale(1); }
-    }
-    @keyframes inRight {
-      0%   { opacity: 0; transform: translateX(18px) scale(0.82); }
-      55%  { transform: translateX(-3px) scale(1.04); }
-      100% { opacity: 1; transform: translateX(0) scale(1); }
-    }
-    @keyframes inCenter {
-      0%   { opacity: 0; transform: scale(0.72); }
-      65%  { transform: scale(1.06); }
-      100% { opacity: 1; transform: scale(1); }
-    }
-    @keyframes inTop {
-      0%   { opacity: 0; transform: translateY(-14px) scale(0.88); }
-      100% { opacity: 1; transform: translateY(0) scale(1); }
-    }
-    @keyframes out {
-      0%   { opacity: 1; transform: scale(1); }
-      100% { opacity: 0; transform: scale(0.82); }
-    }
+    @keyframes inLeft   { 0%{opacity:0;transform:translateX(-18px) scale(.82)} 55%{transform:translateX(3px) scale(1.04)} 100%{opacity:1;transform:none} }
+    @keyframes inRight  { 0%{opacity:0;transform:translateX(18px) scale(.82)}  55%{transform:translateX(-3px) scale(1.04)} 100%{opacity:1;transform:none} }
+    @keyframes inCenter { 0%{opacity:0;transform:scale(.72)} 65%{transform:scale(1.06)} 100%{opacity:1;transform:none} }
+    @keyframes inTop    { 0%{opacity:0;transform:translateY(-14px) scale(.88)} 100%{opacity:1;transform:none} }
+    @keyframes out      { 0%{opacity:1;transform:none} 100%{opacity:0;transform:scale(.82)} }
 
-    .anim-in-left   { animation: inLeft   0.38s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-    .anim-in-right  { animation: inRight  0.38s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-    .anim-in-center { animation: inCenter 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-    .anim-in-top    { animation: inTop    0.36s ease-out forwards; }
-    .anim-out       { animation: out 0.22s ease-in forwards; }
+    .anim-left   { animation: inLeft   0.38s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+    .anim-right  { animation: inRight  0.38s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+    .anim-center { animation: inCenter 0.42s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+    .anim-top    { animation: inTop    0.36s ease-out forwards; }
+    .anim-out    { animation: out 0.22s ease-in forwards; }
 
-    /* ── Speaker Legend ── */
+    /* ── Legend ── */
     .legend {
-      position: absolute;
-      bottom: 8px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      justify-content: center;
+      position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
     }
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 11px;
-      color: var(--text-dim);
-    }
-    .legend-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-    }
+    .leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--dim); }
+    .leg-dot  { width: 8px; height: 8px; border-radius: 50%; }
 
-    /* ── Controls ── */
-    .controls {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      height: 68px;
+    /* ── Controls (playback) ── */
+    .ctrl {
+      position: fixed; bottom: 0; left: 0; right: 0; height: 68px;
       padding: 10px 14px;
       background: rgba(0,0,0,0.55);
       border-top: 1px solid rgba(255,255,255,0.07);
-      display: flex;
-      align-items: center;
-      gap: 10px;
+      display: flex; align-items: center; gap: 10px;
       z-index: 10;
     }
-
     .btn {
-      background: var(--surface);
-      border: none;
-      color: #fff;
-      border-radius: 50%;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      transition: background 0.15s, transform 0.1s;
+      background: var(--surf); border: none; color: #fff; border-radius: 50%;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: background 0.15s, transform 0.1s;
     }
     .btn:active { transform: scale(0.9); }
-    .btn-sm { width: 32px; height: 32px; font-size: 13px; }
-    .btn-play { width: 42px; height: 42px; font-size: 18px; background: var(--color-A); }
-    .btn:hover { filter: brightness(1.15); }
-
-    .progress-col {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
+    .btn-sm   { width: 32px; height: 32px; font-size: 13px; }
+    .btn-play { width: 42px; height: 42px; font-size: 18px; background: var(--A); }
+    .prog-col { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+    .prog-track {
+      height: 4px; background: rgba(255,255,255,0.12); border-radius: 2px;
+      cursor: pointer; position: relative;
     }
-    .progress-track {
-      height: 4px;
-      background: rgba(255,255,255,0.12);
-      border-radius: 2px;
-      cursor: pointer;
-      position: relative;
+    .prog-fill  { height: 100%; background: var(--A); border-radius: 2px; width: 0%; pointer-events: none; transition: width 0.08s linear; }
+    .prog-thumb {
+      position: absolute; top: 50%; transform: translate(-50%,-50%);
+      width: 10px; height: 10px; background: #fff; border-radius: 50%;
+      pointer-events: none; left: 0%;
+      box-shadow: 0 0 0 2px rgba(88,101,242,0.6); transition: left 0.08s linear;
     }
-    .progress-fill {
-      height: 100%;
-      background: var(--color-A);
-      border-radius: 2px;
-      width: 0%;
-      pointer-events: none;
-      transition: width 0.08s linear;
-    }
-    .progress-thumb {
-      position: absolute;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      width: 10px;
-      height: 10px;
-      background: #fff;
-      border-radius: 50%;
-      pointer-events: none;
-      left: 0%;
-      box-shadow: 0 0 0 2px rgba(88,101,242,0.6);
-      transition: left 0.08s linear;
-    }
-
-    .time-row {
-      display: flex;
-      justify-content: space-between;
-      font-size: 10px;
-      color: var(--text-dim);
-    }
-
+    .time-row { display: flex; justify-content: space-between; font-size: 10px; color: var(--dim); }
     .speed-btn {
-      background: var(--surface);
-      border: none;
-      color: rgba(255,255,255,0.7);
-      padding: 4px 9px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-size: 11px;
-      font-weight: 700;
-      flex-shrink: 0;
-      transition: background 0.15s;
+      background: var(--surf); border: none; color: rgba(255,255,255,0.7);
+      padding: 4px 9px; border-radius: 10px; cursor: pointer;
+      font-size: 11px; font-weight: 700; flex-shrink: 0;
     }
-    .speed-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
 
-    /* ── Error / Loading ── */
+    /* ── Record mode controls ── */
+    .rec-ctrl {
+      position: fixed; bottom: 0; left: 0; right: 0; height: 68px;
+      background: rgba(0,0,0,0.55);
+      border-top: 1px solid rgba(255,255,255,0.07);
+      display: flex; align-items: center; justify-content: center; gap: 20px;
+      z-index: 10;
+    }
+    .mic-btn {
+      width: 52px; height: 52px; border-radius: 50%; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; transition: all 0.2s;
+      background: var(--A);
+    }
+    .mic-btn.recording { background: #E53935; animation: pulse 1s ease-in-out infinite; }
+    .mic-btn:active { transform: scale(0.92); }
+    @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(229,57,53,0.5)} 50%{box-shadow:0 0 0 12px rgba(229,57,53,0)} }
+
+    .rec-status { font-size: 12px; color: var(--dim); text-align: center; min-width: 80px; }
+    .rec-clear {
+      background: var(--surf); border: none; color: var(--dim);
+      padding: 6px 12px; border-radius: 12px; cursor: pointer; font-size: 12px;
+    }
+
+    /* ── Interim bubble (live preview) ── */
+    .interim-bubble {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      bottom: 80px;
+      background: rgba(88,101,242,0.35);
+      border: 1px dashed rgba(88,101,242,0.7);
+      padding: 8px 14px; border-radius: 18px;
+      font-size: 13px; color: rgba(255,255,255,0.8);
+      max-width: 70%; text-align: center;
+      display: none;
+    }
+
+    /* ── Error / info ── */
     .center-msg {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100dvh;
-      gap: 12px;
-      text-align: center;
-      padding: 24px;
-      color: var(--text-dim);
-      font-size: 14px;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; height: 100%; gap: 12px;
+      text-align: center; padding: 24px; color: var(--dim); font-size: 14px;
     }
     .center-msg .icon { font-size: 36px; }
   </style>
@@ -285,13 +187,140 @@
 
 <script>
 (function () {
-  /* ── Parse data from URL ── */
-  const params = new URLSearchParams(location.search);
-  const raw = params.get('data');
+  const params   = new URLSearchParams(location.search);
+  const mode     = params.get('mode') || 'play';
+  const lang     = params.get('lang') || 'zh-CN';
 
+  /* ══════════════════════════════════════════════
+     RECORD MODE  — Web Speech API real-time STT
+  ══════════════════════════════════════════════ */
+  if (mode === 'record') {
+    document.getElementById('root').innerHTML = `
+      <div class="hdr">
+        <span class="hdr-icon">🎙️</span>
+        <span class="hdr-title">实时气泡字幕</span>
+        <span class="hdr-badge" id="lang-badge">${lang}</span>
+      </div>
+      <div class="stage" id="stage">
+        <div class="zone z-center" id="z-center"></div>
+        <div class="interim-bubble" id="interim"></div>
+      </div>
+      <div class="rec-ctrl">
+        <button class="rec-clear" id="btn-clear">清空</button>
+        <button class="mic-btn" id="mic-btn" title="点击开始/停止录音">🎙️</button>
+        <div class="rec-status" id="rec-status">点击麦克风<br>开始录音</div>
+      </div>
+    `;
+
+    const micBtn    = document.getElementById('mic-btn');
+    const recStatus = document.getElementById('rec-status');
+    const interimEl = document.getElementById('interim');
+    const zone      = document.getElementById('z-center');
+    const btnClear  = document.getElementById('btn-clear');
+
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRec) {
+      document.getElementById('root').innerHTML =
+        '<div class="center-msg"><div class="icon">⚠️</div><div>此设备不支持 Web Speech API<br>请升级浏览器或改用文字输入模式</div></div>';
+      return;
+    }
+
+    const rec = new SpeechRec();
+    rec.lang = lang;
+    rec.continuous = true;
+    rec.interimResults = true;
+
+    let isRecording = false;
+    let bubbleCount = 0;
+    const COLORS = ['A', 'B', 'C', 'D'];
+
+    function addBubble(text) {
+      if (!text.trim()) return;
+      const colorSlot = COLORS[bubbleCount % COLORS.length];
+      bubbleCount++;
+
+      const el = document.createElement('div');
+      el.className = `bubble sp-${colorSlot} pos-center`;
+      el.textContent = text;
+      zone.appendChild(el);
+      void el.offsetHeight; // force reflow
+      el.classList.add('anim-center');
+
+      // Keep max 4 bubbles
+      while (zone.children.length > 4) {
+        const old = zone.children[0];
+        old.classList.add('anim-out');
+        setTimeout(() => old.remove(), 230);
+      }
+    }
+
+    rec.onresult = (e) => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          addBubble(e.results[i][0].transcript);
+          interimEl.style.display = 'none';
+          interimEl.textContent = '';
+        } else {
+          interim += e.results[i][0].transcript;
+        }
+      }
+      if (interim) {
+        interimEl.textContent = interim;
+        interimEl.style.display = 'block';
+      }
+    };
+
+    rec.onerror = (e) => {
+      recStatus.textContent = '错误：' + e.error;
+      stopRecording();
+    };
+
+    rec.onend = () => {
+      if (isRecording) {
+        // Auto-restart if still supposed to be recording
+        try { rec.start(); } catch(_) {}
+      }
+    };
+
+    function startRecording() {
+      isRecording = true;
+      micBtn.classList.add('recording');
+      micBtn.textContent = '⏹️';
+      recStatus.innerHTML = '录音中…<br>说话吧';
+      try { rec.start(); } catch(_) {}
+    }
+
+    function stopRecording() {
+      isRecording = false;
+      micBtn.classList.remove('recording');
+      micBtn.textContent = '🎙️';
+      recStatus.innerHTML = '点击麦克风<br>开始录音';
+      interimEl.style.display = 'none';
+      interimEl.textContent = '';
+      try { rec.stop(); } catch(_) {}
+    }
+
+    micBtn.addEventListener('click', () => {
+      isRecording ? stopRecording() : startRecording();
+    });
+
+    btnClear.addEventListener('click', () => {
+      zone.innerHTML = '';
+      bubbleCount = 0;
+      interimEl.style.display = 'none';
+    });
+
+    return; // End of record mode
+  }
+
+  /* ══════════════════════════════════════════════
+     PLAY MODE  — Timestamp-synced playback
+  ══════════════════════════════════════════════ */
+  const raw = params.get('data');
   if (!raw) {
     document.getElementById('root').innerHTML =
-      '<div class="center-msg"><div class="icon">⚠️</div><div>无字幕数据<br>请通过技能重新生成</div></div>';
+      '<div class="center-msg"><div class="icon">⚠️</div><div>无字幕数据</div></div>';
     return;
   }
 
@@ -299,120 +328,90 @@
   try { data = JSON.parse(decodeURIComponent(raw)); }
   catch (e) {
     document.getElementById('root').innerHTML =
-      `<div class="center-msg"><div class="icon">❌</div><div>数据解析失败<br>${e.message}</div></div>`;
+      `<div class="center-msg"><div class="icon">❌</div><div>数据解析失败</div></div>`;
     return;
   }
 
-  const segments     = data.segments || [];
-  const totalDur     = data.duration || (segments.length ? segments[segments.length - 1].end : 60);
-  const title        = data.title || '气泡字幕';
+  const segments  = data.segments || [];
+  const totalDur  = data.duration || segments[segments.length - 1]?.end || 60;
+  const title     = data.title || '气泡字幕';
 
-  /* Speaker → color slot (A/B/C/D) */
-  const speakerList  = [...new Set(segments.map(s => s.speaker || 'A'))];
-  const slots        = ['A', 'B', 'C', 'D'];
-  const speakerColor = {};
-  speakerList.forEach((sp, i) => { speakerColor[sp] = slots[i % 4]; });
+  const spList    = [...new Set(segments.map(s => s.speaker || 'A'))];
+  const colorMap  = {};
+  spList.forEach((sp, i) => { colorMap[sp] = ['A','B','C','D'][i % 4]; });
+  const hexColor  = { A:'#5865F2', B:'#27AE60', C:'#E91E8C', D:'#F39C12' };
 
-  /* ── Build DOM ── */
   document.getElementById('root').innerHTML = `
-    <div class="header">
-      <span class="header-icon">🎬</span>
-      <span class="header-title">${title}</span>
-      <span class="header-count">${segments.length} 段</span>
+    <div class="hdr">
+      <span class="hdr-icon">🎬</span>
+      <span class="hdr-title">${title}</span>
+      <span class="hdr-badge">${segments.length} 段</span>
     </div>
-
     <div class="stage" id="stage">
-      <div class="zone zone-left"   id="z-left"></div>
-      <div class="zone zone-right"  id="z-right"></div>
-      <div class="zone zone-center" id="z-center"></div>
-      <div class="zone zone-top"    id="z-top"></div>
+      <div class="zone z-left"   id="z-left"></div>
+      <div class="zone z-right"  id="z-right"></div>
+      <div class="zone z-center" id="z-center"></div>
+      <div class="zone z-top"    id="z-top"></div>
       <div class="legend" id="legend"></div>
     </div>
-
-    <div class="controls">
-      <button class="btn btn-sm" id="btn-restart" title="重播">↩</button>
+    <div class="ctrl">
+      <button class="btn btn-sm" id="btn-restart">↩</button>
       <button class="btn btn-play" id="btn-play">▶</button>
-      <div class="progress-col">
-        <div class="progress-track" id="prog-track">
-          <div class="progress-fill"  id="prog-fill"></div>
-          <div class="progress-thumb" id="prog-thumb"></div>
+      <div class="prog-col">
+        <div class="prog-track" id="prog-track">
+          <div class="prog-fill"  id="prog-fill"></div>
+          <div class="prog-thumb" id="prog-thumb"></div>
         </div>
-        <div class="time-row">
-          <span id="t-cur">0:00</span>
-          <span id="t-tot">${fmt(totalDur)}</span>
-        </div>
+        <div class="time-row"><span id="t-cur">0:00</span><span id="t-tot">${fmt(totalDur)}</span></div>
       </div>
       <button class="speed-btn" id="speed-btn">1×</button>
     </div>
   `;
 
-  /* ── Speaker legend ── */
+  // Legend
   const legendEl = document.getElementById('legend');
-  const colorHex = { A: '#5865F2', B: '#27AE60', C: '#E91E8C', D: '#F39C12' };
-  speakerList.forEach(sp => {
-    const slot = speakerColor[sp];
-    legendEl.innerHTML += `
-      <div class="legend-item">
-        <div class="legend-dot" style="background:${colorHex[slot]}"></div>
-        <span>说话人 ${sp}</span>
-      </div>`;
+  spList.forEach(sp => {
+    const slot = colorMap[sp];
+    legendEl.innerHTML += `<div class="leg-item"><div class="leg-dot" style="background:${hexColor[slot]}"></div><span>说话人 ${sp}</span></div>`;
   });
 
-  /* ── State ── */
-  let curTime  = 0;
-  let playing  = false;
-  let lastTs   = null;
-  let rafId    = null;
-  let speed    = 1;
+  // State
+  let curTime = 0, playing = false, lastTs = null, rafId = null;
+  let speed = 1;
   const SPEEDS = [0.5, 1, 1.5, 2];
-  let spdIdx   = 1;
-
-  /* active bubbles: Map<segIndex, HTMLElement> */
+  let spdIdx = 1;
   const active = new Map();
 
-  /* ── Helpers ── */
-  function fmt(s) {
-    const m = Math.floor(s / 60);
-    return m + ':' + String(Math.floor(s % 60)).padStart(2, '0');
-  }
+  function fmt(s) { return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'); }
 
   function zoneEl(pos) {
-    const p = (pos || 'center').toLowerCase();
-    if (p === 'left')  return document.getElementById('z-left');
-    if (p === 'right') return document.getElementById('z-right');
-    if (p === 'top')   return document.getElementById('z-top');
+    const p = (pos||'center').toLowerCase();
+    if (p==='left')  return document.getElementById('z-left');
+    if (p==='right') return document.getElementById('z-right');
+    if (p==='top')   return document.getElementById('z-top');
     return document.getElementById('z-center');
   }
 
-  function inAnimClass(pos) {
-    const p = (pos || 'center').toLowerCase();
-    if (p === 'left')  return 'anim-in-left';
-    if (p === 'right') return 'anim-in-right';
-    if (p === 'top')   return 'anim-in-top';
-    return 'anim-in-center';
+  function animClass(pos) {
+    const p = (pos||'center').toLowerCase();
+    if (p==='left')  return 'anim-left';
+    if (p==='right') return 'anim-right';
+    if (p==='top')   return 'anim-top';
+    return 'anim-center';
   }
 
-  /* ── Bubble lifecycle ── */
   function showBubble(seg, idx) {
     if (active.has(idx)) return;
-    const zone  = zoneEl(seg.position);
-    const slot  = speakerColor[seg.speaker || 'A'] || 'A';
-    const pos   = (seg.position || 'center').toLowerCase();
-
-    const el = document.createElement('div');
+    const zone = zoneEl(seg.position);
+    const slot = colorMap[seg.speaker||'A'] || 'A';
+    const pos  = (seg.position||'center').toLowerCase();
+    const el   = document.createElement('div');
     el.className = `bubble sp-${slot} pos-${pos}`;
     el.textContent = seg.text;
     zone.appendChild(el);
-    // 强制 reflow 后再加动画 class，确保浏览器有初始状态可动画
     void el.offsetHeight;
-    el.classList.add(inAnimClass(pos));
-
-    /* Cap zone at 2 visible bubbles: remove the oldest */
-    while (zone.children.length > 2) {
-      const old = zone.children[0];
-      old.remove();
-    }
-
+    el.classList.add(animClass(pos));
+    while (zone.children.length > 2) zone.children[0].remove();
     active.set(idx, el);
   }
 
@@ -420,30 +419,21 @@
     const el = active.get(idx);
     if (!el) return;
     active.delete(idx);
-    el.classList.remove(...[...el.classList].filter(c => c.startsWith('anim-in')));
     el.classList.add('anim-out');
     setTimeout(() => el.remove(), 240);
   }
 
-  function clearAllBubbles() {
-    active.forEach((_, idx) => {
-      const el = active.get(idx);
-      if (el) el.remove();
-    });
+  function clearAll() {
+    active.forEach((_, idx) => { const el=active.get(idx); if(el) el.remove(); });
     active.clear();
-    ['z-left','z-right','z-center','z-top'].forEach(id => {
-      const z = document.getElementById(id);
-      if (z) z.innerHTML = '';
-    });
+    ['z-left','z-right','z-center','z-top'].forEach(id => { const z=document.getElementById(id); if(z) z.innerHTML=''; });
   }
 
-  /* ── Playback ── */
   function updateUI() {
-    const pct = totalDur > 0 ? (curTime / totalDur) * 100 : 0;
+    const pct = totalDur > 0 ? (curTime/totalDur)*100 : 0;
     document.getElementById('prog-fill').style.width  = pct + '%';
     document.getElementById('prog-thumb').style.left  = pct + '%';
     document.getElementById('t-cur').textContent = fmt(curTime);
-
     segments.forEach((seg, idx) => {
       const on = curTime >= seg.start && curTime < seg.end;
       if (on && !active.has(idx))  showBubble(seg, idx);
@@ -453,66 +443,46 @@
 
   function tick(ts) {
     if (!playing) return;
-    if (lastTs !== null) curTime += (ts - lastTs) / 1000 * speed;
+    if (lastTs !== null) curTime += (ts-lastTs)/1000*speed;
     lastTs = ts;
-
     if (curTime >= totalDur) {
-      curTime = totalDur;
-      playing = false;
+      curTime = totalDur; playing = false;
       document.getElementById('btn-play').textContent = '▶';
-      lastTs = null;
-      updateUI();
-      return;
+      lastTs = null; updateUI(); return;
     }
-
     updateUI();
     rafId = requestAnimationFrame(tick);
   }
 
   function play() {
-    if (curTime >= totalDur) curTime = 0;
     playing = true;
     document.getElementById('btn-play').textContent = '⏸';
-    lastTs = null;
-    rafId  = requestAnimationFrame(tick);
+    lastTs = null; rafId = requestAnimationFrame(tick);
   }
 
   function pause() {
     playing = false;
     document.getElementById('btn-play').textContent = '▶';
-    lastTs = null;
-    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    lastTs = null; if (rafId) cancelAnimationFrame(rafId);
   }
 
   function restart() {
-    pause();
-    curTime = 0;
-    clearAllBubbles();
-    updateUI();
-    setTimeout(play, 150);
+    pause(); curTime = 0; clearAll(); updateUI(); setTimeout(play, 150);
   }
 
-  /* ── Controls ── */
-  document.getElementById('btn-play').addEventListener('click', () => {
-    playing ? pause() : play();
-  });
-
+  document.getElementById('btn-play').addEventListener('click', () => playing ? pause() : play());
   document.getElementById('btn-restart').addEventListener('click', restart);
-
   document.getElementById('speed-btn').addEventListener('click', () => {
-    spdIdx = (spdIdx + 1) % SPEEDS.length;
-    speed  = SPEEDS[spdIdx];
+    spdIdx = (spdIdx+1) % SPEEDS.length;
+    speed = SPEEDS[spdIdx];
     document.getElementById('speed-btn').textContent = speed + '×';
   });
-
   document.getElementById('prog-track').addEventListener('click', e => {
     const rect = document.getElementById('prog-track').getBoundingClientRect();
-    curTime = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) * totalDur;
-    clearAllBubbles();
-    updateUI();
+    curTime = Math.max(0, Math.min(1, (e.clientX-rect.left)/rect.width)) * totalDur;
+    clearAll(); updateUI();
   });
 
-  /* ── Init ── */
   updateUI();
 })();
 </script>

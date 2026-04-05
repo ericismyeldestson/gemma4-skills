@@ -7,23 +7,33 @@
 window['ai_edge_gallery_get_result'] = async (data) => {
   try {
     const parsed = JSON.parse(data);
+    const mode = parsed.mode || 'play';
 
-    // 基本校验
+    // ── Mode 1: Live recording via Web Speech API ──
+    if (mode === 'record') {
+      const lang = parsed.lang || 'zh-CN';
+      return JSON.stringify({
+        result: '🎙️ 气泡字幕录音器已启动，点击麦克风开始说话！',
+        webview: {
+          url: `webview.html?mode=record&lang=${encodeURIComponent(lang)}`,
+          aspectRatio: 1.5
+        }
+      });
+    }
+
+    // ── Mode 2: Playback from transcript data ──
     if (!parsed.segments || !Array.isArray(parsed.segments) || parsed.segments.length === 0) {
-      return JSON.stringify({ error: '缺少 segments 数据，请确认已正确转写音频内容。' });
+      // No segments: default to record mode
+      return JSON.stringify({
+        result: '🎙️ 未检测到字幕数据，启动实时录音模式。',
+        webview: {
+          url: 'webview.html?mode=record&lang=zh-CN',
+          aspectRatio: 1.5
+        }
+      });
     }
 
-    for (let i = 0; i < parsed.segments.length; i++) {
-      const seg = parsed.segments[i];
-      if (typeof seg.start !== 'number' || typeof seg.end !== 'number' || !seg.text) {
-        return JSON.stringify({ error: `第 ${i + 1} 条字幕格式有误，需包含 start、end、text 字段。` });
-      }
-      if (seg.start >= seg.end) {
-        return JSON.stringify({ error: `第 ${i + 1} 条字幕时间异常：start(${seg.start}) >= end(${seg.end})。` });
-      }
-    }
-
-    // 补全缺失字段
+    // Validate and fill defaults
     parsed.segments = parsed.segments.map(seg => ({
       start:    seg.start,
       end:      seg.end,
@@ -31,26 +41,19 @@ window['ai_edge_gallery_get_result'] = async (data) => {
       speaker:  seg.speaker  || 'A',
       position: seg.position || 'center'
     }));
-
     if (!parsed.duration) {
       parsed.duration = parsed.segments[parsed.segments.length - 1].end;
     }
-    if (!parsed.title) {
-      parsed.title = '气泡字幕';
-    }
 
-    // 将数据编码到 URL（支持中文）
     const encoded = encodeURIComponent(JSON.stringify(parsed));
-
-    const count    = parsed.segments.length;
-    const duration = parsed.duration;
-    const minutes  = Math.floor(duration / 60);
-    const seconds  = Math.round(duration % 60);
+    const count   = parsed.segments.length;
+    const dur     = parsed.duration;
+    const mm = Math.floor(dur / 60), ss = Math.round(dur % 60);
 
     return JSON.stringify({
-      result: `✅ 气泡字幕已生成！共 ${count} 段字幕，总时长 ${minutes}分${seconds}秒。点击下方播放查看动画。`,
+      result: `✅ 已生成 ${count} 段气泡字幕，时长 ${mm}分${ss}秒。`,
       webview: {
-        url: `webview.html?data=${encoded}`,
+        url: `webview.html?mode=play&data=${encoded}`,
         aspectRatio: 1.5
       }
     });

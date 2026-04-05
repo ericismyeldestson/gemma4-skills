@@ -19,7 +19,10 @@
       "mcp__plugin_chrome-devtools-mcp_chrome-devtools__take_screenshot",
       "Bash(git --version)",
       "Bash(gh --version)",
-      "mcp__Desktop_Commander__start_process"
+      "mcp__Desktop_Commander__start_process",
+      "mcp__Desktop_Commander__interact_with_process",
+      "mcp__Desktop_Commander__read_process_output",
+      "WebFetch(domain:ericismyeldestson.github.io)"
     ]
   }
 }
