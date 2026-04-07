@@ -24,36 +24,23 @@
       background: rgba(10,10,20,0.97);
       display: flex; align-items: center; justify-content: center;
     }
-    .wl-box {
-      text-align: center; padding: 32px 28px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 24px; width: 280px;
-    }
+    .wl-box { text-align: center; padding: 32px 28px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; width: 280px; }
     .wl-icon { font-size: 48px; margin-bottom: 14px; }
     .wl-title { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
     .wl-sub { font-size: 12px; color: var(--dim); margin-bottom: 20px; line-height: 1.6; }
     .wl-bar { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
     .wl-fill { height: 100%; background: var(--A); border-radius: 3px; width: 0%; transition: width 0.3s ease; }
     .wl-pct { font-size: 13px; color: var(--dim); margin-bottom: 16px; }
-    .wl-skip {
-      background: none; border: 1px solid rgba(255,255,255,0.2);
-      color: var(--dim); padding: 8px 18px; border-radius: 12px;
-      cursor: pointer; font-size: 12px;
-    }
+    .wl-skip { background: none; border: 1px solid rgba(255,255,255,0.2); color: var(--dim); padding: 8px 18px; border-radius: 12px; cursor: pointer; font-size: 12px; }
     .wl-skip:active { opacity: 0.6; }
 
-    /* ══ STT MODE PILL (Whisper vs Cloud) ══ */
+    /* ══ STT MODE PILL ══ */
     #stt-toggle {
       position: fixed; top: 10px; right: 10px; z-index: 20;
       display: flex; background: rgba(0,0,0,0.55);
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 20px; overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.15); border-radius: 20px; overflow: hidden;
     }
-    .stt-opt {
-      padding: 5px 11px; font-size: 11px; font-weight: 600;
-      cursor: pointer; color: var(--dim); transition: all 0.2s;
-    }
+    .stt-opt { padding: 5px 11px; font-size: 11px; font-weight: 600; cursor: pointer; color: var(--dim); transition: all 0.2s; }
     .stt-opt.active { background: var(--A); color: #fff; }
 
     /* ══ CAMERA MODE ══ */
@@ -61,92 +48,118 @@
       position: fixed; inset: 0; width: 100%; height: 100%;
       object-fit: cover; transform: scaleX(-1);
     }
-    #cam-bubbles {
-      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-      width: 85%; display: flex; flex-direction: column-reverse;
-      align-items: center; gap: 8px; z-index: 3;
+
+    /* Face bounding box indicator */
+    #face-box {
+      position: fixed; pointer-events: none; z-index: 3;
+      border: 2px solid rgba(88,101,242,0.7); border-radius: 10px;
+      box-shadow: 0 0 12px rgba(88,101,242,0.3), inset 0 0 20px rgba(88,101,242,0.05);
+      display: none;
+      transition: left 0.1s ease, top 0.1s ease, width 0.1s ease, height 0.1s ease;
     }
+    /* Corner accents */
+    #face-box::before, #face-box::after {
+      content: ''; position: absolute;
+      width: 12px; height: 12px;
+      border-color: rgba(88,101,242,0.9); border-style: solid;
+    }
+    #face-box::before { top: -2px; left: -2px; border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+    #face-box::after  { bottom: -2px; right: -2px; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+    #face-box.detected { display: block; }
+
+    /* Floating speech bubbles — each anchored independently */
     .cam-bubble {
-      background: rgba(10,10,30,0.72);
-      border: 1.5px solid rgba(255,255,255,0.18);
-      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-      padding: 10px 18px; border-radius: 22px;
+      position: fixed;
+      transform: translateX(-50%) translateY(0);
+      background: rgba(10, 10, 30, 0.78);
+      border: 1.5px solid rgba(255,255,255,0.22);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      padding: 9px 16px; border-radius: 22px;
       font-size: 15px; font-weight: 500; line-height: 1.5;
-      text-align: center; max-width: 90%; word-break: break-word;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-      opacity: 0; transform: translateY(20px) scale(0.92);
-      transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+      text-align: center; max-width: min(82vw, 340px);
+      word-break: break-word;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.45), 0 0 0 1px rgba(88,101,242,0.15);
+      pointer-events: none; z-index: 5;
+      opacity: 0;
+      transition: opacity 0.32s ease, transform 0.32s cubic-bezier(0.34,1.56,0.64,1);
     }
-    .cam-bubble.show { opacity: 1; transform: translateY(0) scale(1); }
-    .cam-bubble.old { opacity: 0.4; transform: translateY(-4px) scale(0.95); font-size: 13px; }
-    .cam-bubble.fading { opacity: 0; transform: translateY(-16px) scale(0.88); }
+    /* Tail pointing down toward face */
+    .cam-bubble::after {
+      content: ''; position: absolute;
+      bottom: -8px; left: 50%; transform: translateX(-50%);
+      width: 0; height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 8px solid rgba(10,10,30,0.78);
+    }
+    .cam-bubble.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .cam-bubble.enter { transform: translateX(-50%) translateY(10px) scale(0.92); }
+    .cam-bubble.fading { opacity: 0 !important; transform: translateX(-50%) translateY(-12px) scale(0.88) !important; transition: opacity 0.35s ease, transform 0.35s ease; }
+
+    /* Bottom-center fallback when no face */
+    .cam-bubble.no-face {
+      left: 50%; bottom: 90px; top: auto;
+    }
+    .cam-bubble.no-face::after { display: none; }
+
+    /* Interim (in-progress) preview */
     #cam-interim {
       position: fixed; bottom: 82px; left: 50%; transform: translateX(-50%);
-      background: rgba(88,101,242,0.25); border: 1.5px dashed rgba(88,101,242,0.6);
+      background: rgba(88,101,242,0.22); border: 1.5px dashed rgba(88,101,242,0.6);
       backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-      padding: 8px 16px; border-radius: 18px; font-size: 14px;
+      padding: 7px 15px; border-radius: 18px; font-size: 14px;
       color: rgba(255,255,255,0.75); max-width: 80%; text-align: center;
-      display: none; z-index: 4;
+      display: none; z-index: 6; pointer-events: none;
     }
+
+    /* Controls bar */
     #cam-ctrl {
-      position: fixed; bottom: 0; left: 0; right: 0; height: 74px;
-      padding: 0 24px;
-      background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%);
-      display: flex; align-items: center; justify-content: space-between; z-index: 5;
+      position: fixed; bottom: 0; left: 0; right: 0; height: 74px; padding: 0 24px;
+      background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 100%);
+      display: flex; align-items: center; justify-content: space-between; z-index: 7;
     }
     .cam-btn {
-      background: rgba(255,255,255,0.15); border: 1.5px solid rgba(255,255,255,0.25);
+      background: rgba(255,255,255,0.14); border: 1.5px solid rgba(255,255,255,0.22);
       backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
       color: #fff; border-radius: 50%; width: 44px; height: 44px;
       display: flex; align-items: center; justify-content: center;
       font-size: 18px; cursor: pointer; transition: background 0.2s, transform 0.1s;
     }
     .cam-btn:active { transform: scale(0.88); }
-    .cam-mic-btn { width: 60px; height: 60px; font-size: 24px; background: rgba(88,101,242,0.8); border-color: rgba(88,101,242,0.4); }
-    .cam-mic-btn.recording { background: rgba(229,57,53,0.85); border-color: rgba(229,57,53,0.4); animation: cam-pulse 1.2s ease-in-out infinite; }
-    .cam-mic-btn.thinking { background: rgba(255,152,0,0.85); border-color: rgba(255,152,0,0.4); animation: cam-pulse 0.6s ease-in-out infinite; }
+    .cam-mic-btn { width: 60px; height: 60px; font-size: 24px; background: rgba(88,101,242,0.82); border-color: rgba(88,101,242,0.4); }
+    .cam-mic-btn.recording { background: rgba(229,57,53,0.88); border-color: rgba(229,57,53,0.4); animation: cam-pulse 1.2s ease-in-out infinite; }
+    .cam-mic-btn.thinking  { background: rgba(255,152,0,0.88); border-color: rgba(255,152,0,0.4); animation: cam-pulse 0.6s ease-in-out infinite; }
     @keyframes cam-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(229,57,53,0.5)} 50%{box-shadow:0 0 0 14px rgba(229,57,53,0)} }
+
+    /* Status badge */
     #cam-status {
       position: fixed; top: 16px; left: 16px;
-      background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(0,0,0,0.48); border: 1px solid rgba(255,255,255,0.14);
       backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
       padding: 5px 12px; border-radius: 20px; font-size: 12px;
-      color: rgba(255,255,255,0.8); display: flex; align-items: center; gap: 6px; z-index: 5;
+      color: rgba(255,255,255,0.82); display: flex; align-items: center; gap: 6px; z-index: 7;
     }
-    #cam-status .dot { width: 7px; height: 7px; border-radius: 50%; background: #888; }
-    #cam-status .dot.live { background: #E53935; animation: blink 1s step-end infinite; }
+    #cam-status .dot { width: 7px; height: 7px; border-radius: 50%; background: #888; flex-shrink: 0; }
+    #cam-status .dot.live  { background: #E53935; animation: blink 1s step-end infinite; }
     #cam-status .dot.think { background: #FF9800; animation: blink 0.4s step-end infinite; }
+    #cam-status .dot.face  { background: #27AE60; animation: blink 2s step-end infinite; }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
 
-    /* ══ SHARED STYLES ══ */
-    .hdr {
-      position: fixed; top: 0; left: 0; right: 0; height: 42px; padding: 0 14px;
-      background: rgba(0,0,0,0.55); border-bottom: 1px solid rgba(255,255,255,0.07);
-      display: flex; align-items: center; gap: 8px; z-index: 10;
-    }
+    /* ══ SHARED STYLES (Record + Play) ══ */
+    .hdr { position: fixed; top: 0; left: 0; right: 0; height: 42px; padding: 0 14px; background: rgba(0,0,0,0.55); border-bottom: 1px solid rgba(255,255,255,0.07); display: flex; align-items: center; gap: 8px; z-index: 10; }
     .hdr-title { flex: 1; font-size: 13px; font-weight: 600; }
     .hdr-badge { font-size: 11px; color: var(--dim); background: var(--surf); padding: 2px 8px; border-radius: 10px; }
     .stage { position: fixed; top: 42px; left: 0; right: 0; bottom: 68px; background: var(--bg); overflow: hidden; }
-    .stage-bg {
-      background: radial-gradient(ellipse at 20% 50%, rgba(88,101,242,0.08) 0%, transparent 60%),
-                  radial-gradient(ellipse at 80% 50%, rgba(39,174,96,0.08) 0%, transparent 60%);
-      width: 100%; height: 100%;
-    }
+    .stage-bg { background: radial-gradient(ellipse at 20% 50%, rgba(88,101,242,0.08) 0%, transparent 60%), radial-gradient(ellipse at 80% 50%, rgba(39,174,96,0.08) 0%, transparent 60%); width: 100%; height: 100%; }
     .zone { position: absolute; display: flex; flex-direction: column; gap: 8px; }
     .z-left   { left: 10px; right: 52%; top: 10%; bottom: 10%; justify-content: center; align-items: flex-start; }
     .z-right  { right: 10px; left: 52%; top: 10%; bottom: 10%; justify-content: center; align-items: flex-end; }
     .z-center { left: 12%; right: 12%; top: 15%; bottom: 15%; justify-content: center; align-items: center; }
     .z-top    { left: 10%; right: 10%; top: 6%; height: 28%; justify-content: flex-start; align-items: center; }
-    .bubble {
-      position: relative; max-width: 100%; padding: 9px 14px; border-radius: 20px;
-      font-size: 14px; line-height: 1.55; font-weight: 500; word-break: break-word;
-      box-shadow: 0 6px 24px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.08) inset;
-      opacity: 0; transform-origin: center bottom;
-    }
+    .bubble { position: relative; max-width: 100%; padding: 9px 14px; border-radius: 20px; font-size: 14px; line-height: 1.55; font-weight: 500; word-break: break-word; box-shadow: 0 6px 24px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.08) inset; opacity: 0; transform-origin: center bottom; }
     .bubble::after { content:''; position:absolute; width:12px; height:12px; bottom:-5px; clip-path:polygon(0 0,100% 0,50% 100%); }
-    .bubble.pos-left::after  { left: 18px; }
-    .bubble.pos-right::after { right: 18px; }
-    .bubble.pos-center::after, .bubble.pos-top::after { display: none; }
+    .bubble.pos-left::after { left:18px; } .bubble.pos-right::after { right:18px; }
+    .bubble.pos-center::after, .bubble.pos-top::after { display:none; }
     .sp-A{background:var(--A)} .sp-A::after{background:var(--A)}
     .sp-B{background:var(--B)} .sp-B::after{background:var(--B)}
     .sp-C{background:var(--C)} .sp-C::after{background:var(--C)}
@@ -161,15 +174,10 @@
     .anim-center { animation: inCenter 0.42s cubic-bezier(0.34,1.56,0.64,1) forwards; }
     .anim-top    { animation: inTop    0.36s ease-out forwards; }
     .anim-out    { animation: outAnim  0.22s ease-in forwards; }
-    .ctrl {
-      position: fixed; bottom: 0; left: 0; right: 0; height: 68px; padding: 10px 14px;
-      background: rgba(0,0,0,0.55); border-top: 1px solid rgba(255,255,255,0.07);
-      display: flex; align-items: center; gap: 10px; z-index: 10;
-    }
+    .ctrl { position: fixed; bottom: 0; left: 0; right: 0; height: 68px; padding: 10px 14px; background: rgba(0,0,0,0.55); border-top: 1px solid rgba(255,255,255,0.07); display: flex; align-items: center; gap: 10px; z-index: 10; }
     .btn { background:var(--surf); border:none; color:#fff; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background 0.15s,transform 0.1s; }
     .btn:active { transform: scale(0.9); }
-    .btn-sm   { width:32px; height:32px; font-size:13px; }
-    .btn-play { width:42px; height:42px; font-size:18px; background:var(--A); }
+    .btn-sm { width:32px; height:32px; font-size:13px; } .btn-play { width:42px; height:42px; font-size:18px; background:var(--A); }
     .mic-btn { width:52px; height:52px; border-radius:50%; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:22px; background:var(--A); transition:all 0.2s; }
     .mic-btn.recording { background:#E53935; animation:pulse 1s ease-in-out infinite; }
     .mic-btn.thinking  { background:#FF9800; animation:pulse 0.5s ease-in-out infinite; }
@@ -177,12 +185,7 @@
     @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(229,57,53,.5)} 50%{box-shadow:0 0 0 12px rgba(229,57,53,0)} }
     .rec-status { font-size:12px; color:var(--dim); text-align:center; flex:1; }
     .clr-btn { background:var(--surf); border:none; color:var(--dim); padding:6px 12px; border-radius:12px; cursor:pointer; font-size:12px; flex-shrink:0; }
-    .interim-bubble {
-      position:absolute; left:50%; transform:translateX(-50%); bottom:12px;
-      background:rgba(88,101,242,0.3); border:1px dashed rgba(88,101,242,0.7);
-      padding:7px 14px; border-radius:16px; font-size:13px; color:rgba(255,255,255,0.8);
-      max-width:70%; text-align:center; display:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    }
+    .interim-bubble { position:absolute; left:50%; transform:translateX(-50%); bottom:12px; background:rgba(88,101,242,0.3); border:1px dashed rgba(88,101,242,0.7); padding:7px 14px; border-radius:16px; font-size:13px; color:rgba(255,255,255,0.8); max-width:70%; text-align:center; display:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .prog-col { flex:1; display:flex; flex-direction:column; gap:5px; }
     .prog-track { height:4px; background:rgba(255,255,255,0.12); border-radius:2px; cursor:pointer; position:relative; }
     .prog-fill  { height:100%; background:var(--A); border-radius:2px; width:0%; pointer-events:none; transition:width 0.08s linear; }
@@ -205,206 +208,102 @@
   const mode   = params.get('mode') || 'camera';
   const lang   = params.get('lang') || 'zh-CN';
 
-  /* ══════════════════════════════════════════════════
+  /* ══════════════════════════════════════════
      WHISPER ENGINE
-     Loads Transformers.js + whisper-tiny on demand.
-     Falls back to Web Speech API if skipped.
-  ══════════════════════════════════════════════════ */
+  ══════════════════════════════════════════ */
   const W = {
-    pipe: null,           // Transformers.js ASR pipeline
-    ready: false,         // model loaded
-    useWhisper: true,     // current STT mode
-    loading: false,
-    skipped: false,
-
-    // Determine model from lang
-    modelId() {
-      return lang.startsWith('zh') ? 'Xenova/whisper-tiny' : 'Xenova/whisper-tiny.en';
-    },
-
-    // Show/update loading overlay
+    pipe: null, ready: false, useWhisper: true, loading: false, _onReady: null,
+    modelId() { return lang.startsWith('zh') ? 'Xenova/whisper-tiny' : 'Xenova/whisper-tiny.en'; },
     showOverlay() {
-      const ov = document.createElement('div');
-      ov.id = 'wl-overlay';
-      ov.innerHTML = `
-        <div class="wl-box">
-          <div class="wl-icon">🤖</div>
-          <div class="wl-title">加载 Whisper 模型</div>
-          <div class="wl-sub">首次约 75MB，之后本地缓存<br>语言：${lang.startsWith('zh') ? '中文' : 'English'}</div>
-          <div class="wl-bar"><div class="wl-fill" id="wl-fill"></div></div>
-          <div class="wl-pct" id="wl-pct">连接中…</div>
-          <button class="wl-skip" id="wl-skip">跳过，用云端识别</button>
-        </div>`;
+      const ov = document.createElement('div'); ov.id = 'wl-overlay';
+      ov.innerHTML = `<div class="wl-box"><div class="wl-icon">🤖</div><div class="wl-title">加载 Whisper 模型</div><div class="wl-sub">首次约 75MB，之后本地缓存<br>语言：${lang.startsWith('zh')?'中文':'English'}</div><div class="wl-bar"><div class="wl-fill" id="wl-fill"></div></div><div class="wl-pct" id="wl-pct">连接中…</div><button class="wl-skip" id="wl-skip">跳过，用云端识别</button></div>`;
       document.body.appendChild(ov);
       document.getElementById('wl-skip').addEventListener('click', () => W.skip());
     },
-
     updateProgress(pct, label) {
-      const fill = document.getElementById('wl-fill');
-      const pctEl = document.getElementById('wl-pct');
-      if (fill) fill.style.width = pct + '%';
-      if (pctEl) pctEl.textContent = label || pct + '%';
+      const f = document.getElementById('wl-fill'), p = document.getElementById('wl-pct');
+      if (f) f.style.width = pct + '%'; if (p) p.textContent = label || pct + '%';
     },
-
-    hideOverlay() {
-      const ov = document.getElementById('wl-overlay');
-      if (ov) { ov.style.transition = 'opacity 0.4s'; ov.style.opacity = '0'; setTimeout(() => ov.remove(), 400); }
-    },
-
-    skip() {
-      W.skipped = true;
-      W.useWhisper = false;
-      W.hideOverlay();
-      if (W._onReady) W._onReady(false); // false = using cloud
-    },
-
-    _onReady: null,
-
+    hideOverlay() { const ov = document.getElementById('wl-overlay'); if (ov){ov.style.transition='opacity 0.4s';ov.style.opacity='0';setTimeout(()=>ov.remove(),400);} },
+    skip() { W.useWhisper = false; W.hideOverlay(); if (W._onReady) W._onReady(false); },
     async load(onReady) {
       if (W.ready) { onReady(true); return; }
-      W._onReady = onReady;
-      W.loading = true;
-      W.showOverlay();
-
+      W._onReady = onReady; W.loading = true; W.showOverlay();
       try {
-        // Dynamic ES module import
         const tf = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js');
-        tf.env.allowLocalModels = false;
-        tf.env.useBrowserCache = true;
-
+        tf.env.allowLocalModels = false; tf.env.useBrowserCache = true;
         W.pipe = await tf.pipeline('automatic-speech-recognition', W.modelId(), {
           progress_callback: (info) => {
-            if (info.status === 'downloading') {
-              const pct = info.total > 0 ? Math.round((info.loaded / info.total) * 100) : 0;
-              W.updateProgress(pct, `下载中 ${pct}%  ${(info.loaded/1024/1024).toFixed(1)}MB`);
-            } else if (info.status === 'loading') {
-              W.updateProgress(95, '模型载入中…');
-            } else if (info.status === 'ready') {
-              W.updateProgress(100, '✅ 就绪');
-            }
+            if (info.status === 'downloading') { const p = info.total>0?Math.round(info.loaded/info.total*100):0; W.updateProgress(p, `下载 ${p}%  ${(info.loaded/1024/1024).toFixed(1)}MB`); }
+            else if (info.status === 'loading') W.updateProgress(95, '载入中…');
+            else if (info.status === 'ready')   W.updateProgress(100, '✅ 就绪');
           }
         });
-
-        W.ready = true;
-        W.loading = false;
-        W.hideOverlay();
-        onReady(true);
-      } catch (err) {
-        console.error('Whisper load failed:', err);
-        W.updateProgress(0, '❌ 加载失败，切换云端');
-        setTimeout(() => W.skip(), 1500);
-      }
+        W.ready = true; W.loading = false; W.hideOverlay(); onReady(true);
+      } catch(err) { console.error(err); W.updateProgress(0, '❌ 失败，切换云端'); setTimeout(()=>W.skip(), 1500); }
     },
-
-    // Run inference on a Blob (audio/mp4 or audio/webm)
-    async transcribe(audioBlob) {
+    async transcribe(blob) {
       if (!W.pipe) return '';
       try {
-        const arrayBuffer = await audioBlob.arrayBuffer();
-        // Decode audio
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const decoded = await audioCtx.decodeAudioData(arrayBuffer);
-        audioCtx.close();
-
-        // Resample to 16kHz mono
-        let float32;
+        const buf = await blob.arrayBuffer();
+        const actx = new (window.AudioContext || window.webkitAudioContext)();
+        const decoded = await actx.decodeAudioData(buf); actx.close();
+        let f32;
         if (decoded.sampleRate === 16000) {
-          float32 = decoded.getChannelData(0);
+          f32 = decoded.getChannelData(0);
         } else {
-          const offline = new OfflineAudioContext(1, Math.ceil(decoded.duration * 16000), 16000);
-          const src = offline.createBufferSource();
-          src.buffer = decoded;
-          src.connect(offline.destination);
-          src.start(0);
-          const resampled = await offline.startRendering();
-          float32 = resampled.getChannelData(0);
+          const ofc = new OfflineAudioContext(1, Math.ceil(decoded.duration*16000), 16000);
+          const src = ofc.createBufferSource(); src.buffer = decoded; src.connect(ofc.destination); src.start(0);
+          f32 = (await ofc.startRendering()).getChannelData(0);
         }
-
-        // Check if mostly silence (RMS energy)
-        let sumSq = 0;
-        for (let i = 0; i < float32.length; i++) sumSq += float32[i] * float32[i];
-        const rms = Math.sqrt(sumSq / float32.length);
-        if (rms < 0.005) return ''; // silence
-
-        const langCode = lang.startsWith('zh') ? 'chinese' : 'english';
-        const result = await W.pipe(float32, {
-          sampling_rate: 16000,
-          language: langCode,
-          task: 'transcribe',
-        });
-        const text = (result.text || '').trim().replace(/^\[.*?\]$/, ''); // remove [BLANK_AUDIO] etc.
-        return text;
-      } catch (e) {
-        console.error('Whisper transcribe error:', e);
-        return '';
-      }
+        let sq = 0; for (let i=0;i<f32.length;i++) sq+=f32[i]*f32[i];
+        if (Math.sqrt(sq/f32.length) < 0.005) return '';
+        const res = await W.pipe(f32, { sampling_rate:16000, language:lang.startsWith('zh')?'chinese':'english', task:'transcribe' });
+        return (res.text||'').trim().replace(/^\[.*?\]$/,'');
+      } catch(e) { console.error(e); return ''; }
     }
   };
 
-  /* ══ STT toggle pill (for camera & record modes) ══ */
+  /* ══ STT toggle pill ══ */
   function addSttToggle(onSwitch) {
-    const pill = document.createElement('div');
-    pill.id = 'stt-toggle';
-    pill.innerHTML = `
-      <div class="stt-opt active" data-v="whisper">🤖 本地</div>
-      <div class="stt-opt" data-v="cloud">☁️ 云端</div>`;
+    const pill = document.createElement('div'); pill.id = 'stt-toggle';
+    pill.innerHTML = `<div class="stt-opt active" data-v="whisper">🤖 本地</div><div class="stt-opt" data-v="cloud">☁️ 云端</div>`;
     document.body.appendChild(pill);
-    pill.addEventListener('click', (e) => {
-      const opt = e.target.closest('.stt-opt');
-      if (!opt) return;
-      pill.querySelectorAll('.stt-opt').forEach(o => o.classList.remove('active'));
-      opt.classList.add('active');
-      const useWhisper = opt.dataset.v === 'whisper';
-      W.useWhisper = useWhisper;
-      if (useWhisper && !W.ready && !W.loading) {
-        W.load((ok) => onSwitch(ok));
-      } else {
-        onSwitch(useWhisper && W.ready);
-      }
+    pill.addEventListener('click', e => {
+      const opt = e.target.closest('.stt-opt'); if (!opt) return;
+      pill.querySelectorAll('.stt-opt').forEach(o=>o.classList.remove('active')); opt.classList.add('active');
+      const wantWhisper = opt.dataset.v === 'whisper';
+      W.useWhisper = wantWhisper;
+      if (wantWhisper && !W.ready && !W.loading) W.load(ok => onSwitch(ok));
+      else onSwitch(wantWhisper && W.ready);
     });
-    // Update pill to cloud if skipped
-    if (!W.useWhisper) {
-      pill.querySelector('[data-v="whisper"]').classList.remove('active');
-      pill.querySelector('[data-v="cloud"]').classList.add('active');
-    }
   }
 
-  /* ══ Web Speech API (cloud fallback) ══ */
+  /* ══ Web Speech API fallback ══ */
   function buildSpeechRec(onFinal, onInterim, onError, onEnd) {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) return null;
-    const rec = new SR();
-    rec.lang = lang; rec.continuous = true; rec.interimResults = true;
-    rec.onresult = (e) => {
-      let interim = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) onFinal(e.results[i][0].transcript.trim());
-        else interim += e.results[i][0].transcript;
-      }
-      if (interim) onInterim(interim);
-    };
-    rec.onerror = onError;
-    rec.onend = onEnd;
-    return rec;
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SR) return null;
+    const rec = new SR(); rec.lang = lang; rec.continuous = true; rec.interimResults = true;
+    rec.onresult = e => { let interim=''; for(let i=e.resultIndex;i<e.results.length;i++){if(e.results[i].isFinal)onFinal(e.results[i][0].transcript.trim());else interim+=e.results[i][0].transcript;} if(interim)onInterim(interim); };
+    rec.onerror = onError; rec.onend = onEnd; return rec;
   }
 
-  /* ═══════════════════════════════════════
-     CAMERA MODE — AR bubble overlay
-  ═══════════════════════════════════════ */
+  /* ═════════════════════════════════════════════════════
+     CAMERA MODE  ── AR bubbles anchored to detected face
+  ═════════════════════════════════════════════════════ */
   if (mode === 'camera') {
     document.getElementById('root').innerHTML = `
       <video id="cam-video" autoplay playsinline muted></video>
-      <div id="cam-status"><div class="dot" id="cam-dot"></div><span id="cam-txt">初始化中…</span></div>
-      <div id="cam-bubbles"></div>
+      <div id="face-box"></div>
       <div id="cam-interim"></div>
+      <div id="cam-status"><div class="dot" id="cam-dot"></div><span id="cam-txt">初始化中…</span></div>
       <div id="cam-ctrl">
-        <button class="cam-btn" id="cam-flip" title="翻转">🔄</button>
+        <button class="cam-btn" id="cam-flip">🔄</button>
         <button class="cam-btn cam-mic-btn" id="cam-mic">🎙️</button>
-        <button class="cam-btn" id="cam-clear" title="清空">🗑️</button>
+        <button class="cam-btn" id="cam-clear">🗑️</button>
       </div>`;
 
     const video     = document.getElementById('cam-video');
-    const bubblesEl = document.getElementById('cam-bubbles');
+    const faceBoxEl = document.getElementById('face-box');
     const interimEl = document.getElementById('cam-interim');
     const camDot    = document.getElementById('cam-dot');
     const camTxt    = document.getElementById('cam-txt');
@@ -414,163 +313,257 @@
 
     let videoStream = null, useFront = true;
     let isRecording = false;
-    let speechRec = null;
-    let mediaRec = null, audioChunks = [];
-    let bubbleHistory = [];
-    const MAX_BUBBLES = 3;
-    const CHUNK_MS = 4000;
+    let speechRec = null, mediaRec = null;
+    const CHUNK_MS = 4000, MAX_BUBBLES = 3;
+    let activeBubbles = [];
+
+    // ── Status helpers ──
+    function setStatus(dotClass, text) {
+      camDot.className = 'dot' + (dotClass ? ' '+dotClass : '');
+      camTxt.textContent = text;
+    }
 
     // ── Camera ──
     async function startCamera() {
       try {
-        if (videoStream) videoStream.getTracks().forEach(t => t.stop());
-        videoStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: useFront ? 'user' : 'environment' }, audio: false
-        });
+        if (videoStream) videoStream.getTracks().forEach(t=>t.stop());
+        videoStream = await navigator.mediaDevices.getUserMedia({ video:{facingMode:useFront?'user':'environment'}, audio:false });
         video.srcObject = videoStream;
         video.style.transform = useFront ? 'scaleX(-1)' : 'none';
-        setStatus('dot', '📷 就绪');
-      } catch (e) {
-        setStatus('dot', '📷 不可用');
-        video.style.display = 'none';
-      }
+        setStatus('', '📷 就绪');
+      } catch(e) { setStatus('', '📷 不可用'); video.style.display='none'; }
     }
 
-    function setStatus(dotClass, text) {
-      camDot.className = 'dot' + (dotClass !== 'dot' ? ' ' + dotClass : '');
-      camTxt.textContent = text;
+    /* ── Face Detection (face-api.js TinyFaceDetector) ──
+       Loads ~1MB model from CDN after camera starts.
+       Runs at ~6fps — lightweight enough for real-time.
+    */
+    const FACE_MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/model';
+    let faceApiReady = false;
+    let smoothBox = null;          // smoothed screen-space bounding box
+    let faceDetecting = false;
+    const EMA = 0.3;               // exponential moving average factor
+
+    function loadFaceApi() {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/dist/face-api.esm-nobundle.js';
+      s.type = 'module';
+      s.onerror = () => console.warn('face-api CDN failed, trying backup');
+      document.head.appendChild(s);
+
+      // Use non-module UMD build as primary (more compatible with WKWebView)
+      const s2 = document.createElement('script');
+      s2.src = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/dist/face-api.js';
+      s2.onload = () => initFaceDetector();
+      s2.onerror = () => setStatus('', '📷 人脸检测不可用');
+      document.head.appendChild(s2);
     }
 
-    // ── Bubble display ──
+    async function initFaceDetector() {
+      try {
+        const faceapi = window.faceapi;
+        if (!faceapi) { console.warn('faceapi not on window'); return; }
+        // Load only TinyFaceDetector weights (~190KB)
+        await faceapi.nets.tinyFaceDetector.loadFromUri(FACE_MODEL_URL);
+        faceApiReady = true;
+        faceDetecting = true;
+        setStatus('face', '👤 人脸检测就绪');
+        detectLoop();
+      } catch(e) { console.error('face-api init failed', e); }
+    }
+
+    // Map video-pixel coords → screen coords, accounting for object-fit:cover + mirror
+    function videoToScreen(box) {
+      const vw = video.videoWidth, vh = video.videoHeight;
+      const ew = video.clientWidth, eh = video.clientHeight;
+      if (!vw || !vh || !ew || !eh) return null;
+      const scale = Math.max(ew/vw, eh/vh);
+      const ox = (ew - vw*scale)/2, oy = (eh - vh*scale)/2;
+      let left = box.x*scale + ox;
+      const top    = box.y*scale + oy;
+      const width  = box.width*scale;
+      const height = box.height*scale;
+      if (useFront) left = ew - left - width; // mirror X for front cam
+      return { left, top, width, height };
+    }
+
+    function smoothUpdate(newBox) {
+      if (!smoothBox) { smoothBox = { ...newBox }; return; }
+      smoothBox.left   = smoothBox.left   * (1-EMA) + newBox.left   * EMA;
+      smoothBox.top    = smoothBox.top    * (1-EMA) + newBox.top    * EMA;
+      smoothBox.width  = smoothBox.width  * (1-EMA) + newBox.width  * EMA;
+      smoothBox.height = smoothBox.height * (1-EMA) + newBox.height * EMA;
+    }
+
+    async function detectLoop() {
+      if (!faceDetecting || !faceApiReady) return;
+      const faceapi = window.faceapi;
+      try {
+        const det = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.45 }));
+        if (det) {
+          const screen = videoToScreen(det.box);
+          if (screen) {
+            smoothUpdate(screen);
+            // Update face box overlay
+            faceBoxEl.style.left   = smoothBox.left   + 'px';
+            faceBoxEl.style.top    = smoothBox.top    + 'px';
+            faceBoxEl.style.width  = smoothBox.width  + 'px';
+            faceBoxEl.style.height = smoothBox.height + 'px';
+            faceBoxEl.classList.add('detected');
+            if (isRecording) setStatus('face', '👤 录音中…');
+            else setStatus('face', '👤 检测到人脸');
+          }
+        } else {
+          // Fade out face box when no face
+          smoothBox = null;
+          faceBoxEl.classList.remove('detected');
+          if (!isRecording) setStatus('', '🔍 寻找人脸…');
+        }
+      } catch(e) { /* swallow per-frame errors */ }
+      setTimeout(detectLoop, 160); // ~6fps
+    }
+
+    // ── Bubble display (face-anchored) ──
     function addCamBubble(text) {
       if (!text || !text.trim()) return;
-      bubbleHistory.push(text.trim());
-      bubblesEl.innerHTML = '';
-      const recent = bubbleHistory.slice(-MAX_BUBBLES);
-      recent.forEach((txt, i) => {
-        const el = document.createElement('div');
-        const isLatest = (i === recent.length - 1);
-        el.className = 'cam-bubble' + (isLatest ? '' : ' old');
-        el.textContent = txt;
-        bubblesEl.prepend(el);
-        if (isLatest) requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
-      });
-      interimEl.style.display = 'none';
-      interimEl.textContent = '';
-    }
 
-    // ── Whisper MediaRecorder mode ──
-    async function startWhisperRec() {
-      let audioStream;
-      try {
-        audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      } catch(e) {
-        setStatus('dot', '🎙️ 麦克风被拒绝');
-        return;
+      const el = document.createElement('div');
+      el.className = 'cam-bubble enter';
+      el.textContent = text.trim();
+      document.body.appendChild(el);
+
+      // Position: above face box if available, else bottom-center
+      if (smoothBox) {
+        const centerX = smoothBox.left + smoothBox.width / 2;
+        const topY    = smoothBox.top - 14; // 14px above face top
+        el.style.left    = centerX + 'px';
+        el.style.top     = topY + 'px';
+        el.style.bottom  = 'auto';
+        // Clamp: don't go above viewport
+        requestAnimationFrame(() => {
+          const h = el.offsetHeight || 44;
+          const clamped = Math.max(8, topY - h);
+          el.style.top = clamped + 'px';
+        });
+      } else {
+        el.classList.add('no-face');
       }
 
-      const mimeType = ['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg']
-        .find(t => MediaRecorder.isTypeSupported(t)) || '';
-      const opts = mimeType ? { mimeType } : {};
-      mediaRec = new MediaRecorder(audioStream, opts);
+      // Animate in
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          el.classList.remove('enter');
+          el.classList.add('show');
+        });
+      });
 
-      mediaRec.ondataavailable = async (e) => {
-        if (!isRecording) return;
-        if (e.data && e.data.size > 1000) {
-          // Show "thinking" while Whisper infers
-          setStatus('dot think', '🤖 识别中…');
-          micBtn.className = 'cam-btn cam-mic-btn thinking';
-          const text = await W.transcribe(e.data);
-          if (isRecording) {
-            micBtn.className = 'cam-btn cam-mic-btn recording';
-            setStatus('dot live', '🔴 监听中…');
-            addCamBubble(text);
-          }
+      activeBubbles.push(el);
+      interimEl.style.display = 'none';
+
+      // Remove oldest if too many
+      while (activeBubbles.length > MAX_BUBBLES) {
+        const old = activeBubbles.shift();
+        old.classList.add('fading');
+        setTimeout(() => old.remove(), 380);
+      }
+
+      // Auto-fade after 6s
+      setTimeout(() => {
+        el.classList.add('fading');
+        setTimeout(() => { el.remove(); activeBubbles = activeBubbles.filter(b=>b!==el); }, 380);
+      }, 6000);
+    }
+
+    // ── Whisper recording mode ──
+    async function startWhisperRec() {
+      let audioStream;
+      try { audioStream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+      catch(e) { setStatus('', '🎙️ 麦克风被拒绝'); return; }
+      const mime = ['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg'].find(t=>MediaRecorder.isTypeSupported(t))||'';
+      mediaRec = new MediaRecorder(audioStream, mime ? {mimeType:mime} : {});
+      mediaRec.ondataavailable = async e => {
+        if (!isRecording || !e.data || e.data.size < 1000) return;
+        micBtn.className = 'cam-btn cam-mic-btn thinking';
+        setStatus('think', '🤖 识别中…');
+        const text = await W.transcribe(e.data);
+        if (isRecording) {
+          micBtn.className = 'cam-btn cam-mic-btn recording';
+          setStatus(smoothBox?'face':'live', smoothBox?'👤 录音中…':'🔴 录音中…');
+          addCamBubble(text);
         }
       };
-
       mediaRec.start(CHUNK_MS);
       isRecording = true;
       micBtn.className = 'cam-btn cam-mic-btn recording';
       micBtn.textContent = '⏹️';
-      setStatus('dot live', '🔴 监听中…');
+      setStatus(smoothBox?'face':'live', smoothBox?'👤 录音中…':'🔴 录音中…');
     }
 
     function stopWhisperRec() {
       isRecording = false;
       if (mediaRec && mediaRec.state !== 'inactive') mediaRec.stop();
       mediaRec = null;
-      micBtn.className = 'cam-btn cam-mic-btn';
-      micBtn.textContent = '🎙️';
-      setStatus('dot', '📷 就绪');
+      micBtn.className = 'cam-btn cam-mic-btn'; micBtn.textContent = '🎙️';
+      setStatus(smoothBox?'face':'', smoothBox?'👤 检测到人脸':'📷 就绪');
     }
 
-    // ── Web Speech API mode ──
+    // ── Cloud speech mode ──
     function startCloudRec() {
       speechRec = buildSpeechRec(
-        (t) => addCamBubble(t),
-        (t) => { interimEl.textContent = t; interimEl.style.display = 'block'; },
-        (e) => { setStatus('dot', '错误: ' + e.error); stopCloudRec(); },
-        () => { if (isRecording) try { speechRec.start(); } catch(_){} }
+        t => addCamBubble(t),
+        t => { interimEl.textContent = t; interimEl.style.display = 'block'; },
+        e => { setStatus('', '错误:'+e.error); stopCloudRec(); },
+        () => { if(isRecording) try{speechRec.start();}catch(_){} }
       );
-      if (!speechRec) { setStatus('dot', '不支持语音识别'); return; }
+      if (!speechRec) { setStatus('', '不支持语音识别'); return; }
       isRecording = true;
-      micBtn.className = 'cam-btn cam-mic-btn recording';
-      micBtn.textContent = '⏹️';
-      setStatus('dot live', '🔴 识别中…');
+      micBtn.className = 'cam-btn cam-mic-btn recording'; micBtn.textContent = '⏹️';
+      setStatus('live', '🔴 识别中…');
       try { speechRec.start(); } catch(_) {}
     }
 
     function stopCloudRec() {
-      isRecording = false;
-      interimEl.style.display = 'none';
-      try { speechRec && speechRec.stop(); } catch(_) {}
-      speechRec = null;
-      micBtn.className = 'cam-btn cam-mic-btn';
-      micBtn.textContent = '🎙️';
-      setStatus('dot', '📷 就绪');
+      isRecording = false; interimEl.style.display = 'none';
+      try { speechRec && speechRec.stop(); } catch(_) {} speechRec = null;
+      micBtn.className = 'cam-btn cam-mic-btn'; micBtn.textContent = '🎙️';
+      setStatus(smoothBox?'face':'', smoothBox?'👤 检测到人脸':'📷 就绪');
     }
 
-    // ── Toggle logic ──
     micBtn.addEventListener('click', () => {
       if (isRecording) { W.useWhisper ? stopWhisperRec() : stopCloudRec(); return; }
-      if (W.useWhisper) startWhisperRec();
-      else startCloudRec();
+      if (W.useWhisper) startWhisperRec(); else startCloudRec();
+    });
+    flipBtn.addEventListener('click', () => { useFront = !useFront; smoothBox = null; faceBoxEl.classList.remove('detected'); startCamera(); });
+    clearBtn.addEventListener('click', () => {
+      activeBubbles.forEach(b => b.remove()); activeBubbles = [];
+      interimEl.style.display = 'none';
     });
 
-    flipBtn.addEventListener('click', () => { useFront = !useFront; startCamera(); });
-    clearBtn.addEventListener('click', () => { bubbleHistory = []; bubblesEl.innerHTML = ''; interimEl.style.display = 'none'; });
-
-    // ── Init ──
-    startCamera();
-    addSttToggle((whisperReady) => {
+    addSttToggle(ok => {
       if (isRecording) { W.useWhisper ? stopWhisperRec() : stopCloudRec(); isRecording = false; }
-      if (!whisperReady && W.useWhisper) {
-        // Whisper not ready yet but toggle hit — update pill
+      if (!ok && W.useWhisper) {
         const pill = document.getElementById('stt-toggle');
-        if (pill) { pill.querySelectorAll('.stt-opt').forEach(o => o.classList.remove('active')); pill.querySelector('[data-v="cloud"]').classList.add('active'); }
+        if (pill) { pill.querySelectorAll('.stt-opt').forEach(o=>o.classList.remove('active')); pill.querySelector('[data-v="cloud"]').classList.add('active'); }
         W.useWhisper = false;
       }
     });
 
-    // Auto-load Whisper
-    W.load((ok) => {
-      if (ok) setStatus('dot', '🤖 Whisper 就绪，点击开始');
-      else setStatus('dot', '☁️ 云端模式就绪');
+    // Boot: camera first, then face-api + whisper in parallel
+    startCamera().then(() => {
+      loadFaceApi();  // non-blocking
+    });
+    W.load(ok => {
+      if (!faceApiReady) setStatus('', ok ? '🤖 Whisper 就绪' : '☁️ 云端模式');
     });
     return;
   }
 
   /* ═══════════════════════════════════════
-     RECORD MODE — Audio only
+     RECORD MODE
   ═══════════════════════════════════════ */
   if (mode === 'record') {
     document.getElementById('root').innerHTML = `
-      <div class="hdr">
-        <span>🎙️</span>
-        <span class="hdr-title">实时气泡字幕</span>
-        <span class="hdr-badge" id="stt-badge">Whisper</span>
-      </div>
+      <div class="hdr"><span>🎙️</span><span class="hdr-title">实时气泡字幕</span><span class="hdr-badge" id="stt-badge">Whisper</span></div>
       <div class="stage"><div class="stage-bg">
         <div class="zone z-center" id="z-center"></div>
         <div class="interim-bubble" id="interim"></div>
@@ -588,180 +581,92 @@
     const btnClear  = document.getElementById('btn-clear');
     const badge     = document.getElementById('stt-badge');
     const COLORS    = ['A','B','C','D'];
-    let count = 0, isRec = false, speechRec = null, mediaRec = null;
-    const CHUNK_MS = 4000;
+    let count=0, isRec=false, speechRec=null, mediaRec=null;
 
     function addBubble(text) {
-      if (!text || !text.trim()) return;
-      const slot = COLORS[count++ % 4];
-      const el = document.createElement('div');
-      el.className = `bubble sp-${slot} pos-center`;
-      el.textContent = text.trim();
-      zone.appendChild(el);
-      void el.offsetHeight;
-      el.classList.add('anim-center');
-      while (zone.children.length > 4) { const o = zone.children[0]; o.classList.add('anim-out'); setTimeout(() => o.remove(), 230); }
-      interimEl.style.display = 'none';
+      if (!text||!text.trim()) return;
+      const slot=COLORS[count++%4], el=document.createElement('div');
+      el.className=`bubble sp-${slot} pos-center`; el.textContent=text.trim();
+      zone.appendChild(el); void el.offsetHeight; el.classList.add('anim-center');
+      while(zone.children.length>4){const o=zone.children[0];o.classList.add('anim-out');setTimeout(()=>o.remove(),230);}
+      interimEl.style.display='none';
     }
 
-    // Whisper mode
     async function startWhisperRec() {
-      let audioStream;
-      try { audioStream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
-      catch(e) { recStatus.textContent = '🎙️ 麦克风被拒绝'; return; }
-
-      const mimeType = ['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg']
-        .find(t => MediaRecorder.isTypeSupported(t)) || '';
-      mediaRec = new MediaRecorder(audioStream, mimeType ? { mimeType } : {});
-      mediaRec.ondataavailable = async (e) => {
-        if (!isRec) return;
-        if (e.data && e.data.size > 1000) {
-          micBtn.className = 'mic-btn thinking';
-          recStatus.innerHTML = '🤖 识别中…';
-          const text = await W.transcribe(e.data);
-          if (isRec) {
-            micBtn.className = 'mic-btn recording';
-            recStatus.innerHTML = '录音中…<br>说话吧';
-            addBubble(text);
-          }
-        }
+      let as; try{as=await navigator.mediaDevices.getUserMedia({audio:true});}catch(e){recStatus.textContent='🎙️ 被拒绝';return;}
+      const mime=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg'].find(t=>MediaRecorder.isTypeSupported(t))||'';
+      mediaRec=new MediaRecorder(as,mime?{mimeType:mime}:{});
+      mediaRec.ondataavailable=async e=>{
+        if(!isRec||!e.data||e.data.size<1000)return;
+        micBtn.className='mic-btn thinking'; recStatus.innerHTML='🤖 识别中…';
+        const text=await W.transcribe(e.data);
+        if(isRec){micBtn.className='mic-btn recording';recStatus.innerHTML='录音中…<br>说话吧';addBubble(text);}
       };
-      mediaRec.start(CHUNK_MS);
-      isRec = true;
-      micBtn.className = 'mic-btn recording';
-      micBtn.textContent = '⏹️';
-      recStatus.innerHTML = '录音中…<br>说话吧';
+      mediaRec.start(4000); isRec=true; micBtn.className='mic-btn recording'; micBtn.textContent='⏹️'; recStatus.innerHTML='录音中…<br>说话吧';
     }
-
-    function stopWhisperRec() {
-      isRec = false;
-      if (mediaRec && mediaRec.state !== 'inactive') mediaRec.stop();
-      mediaRec = null;
-      micBtn.className = 'mic-btn';
-      micBtn.textContent = '🎙️';
-      recStatus.innerHTML = '点击麦克风<br>开始录音';
+    function stopWhisperRec(){isRec=false;if(mediaRec&&mediaRec.state!=='inactive')mediaRec.stop();mediaRec=null;micBtn.className='mic-btn';micBtn.textContent='🎙️';recStatus.innerHTML='点击麦克风<br>开始录音';}
+    function startCloudRec(){
+      speechRec=buildSpeechRec(t=>{addBubble(t);},t=>{interimEl.textContent=t;interimEl.style.display='block';},e=>{recStatus.textContent='错误:'+e.error;stopCloudRec();},()=>{if(isRec)try{speechRec.start();}catch(_){}});
+      if(!speechRec){recStatus.textContent='不支持语音识别';return;}
+      isRec=true;micBtn.className='mic-btn recording';micBtn.textContent='⏹️';recStatus.innerHTML='录音中…<br>说话吧';
+      try{speechRec.start();}catch(_){}
     }
+    function stopCloudRec(){isRec=false;try{speechRec&&speechRec.stop();}catch(_){}speechRec=null;micBtn.className='mic-btn';micBtn.textContent='🎙️';interimEl.style.display='none';recStatus.innerHTML='点击麦克风<br>开始录音';}
 
-    // Cloud mode
-    function startCloudRec() {
-      speechRec = buildSpeechRec(
-        (t) => { addBubble(t); },
-        (t) => { interimEl.textContent = t; interimEl.style.display = 'block'; },
-        (e) => { recStatus.textContent = '错误:' + e.error; stopCloudRec(); },
-        () => { if(isRec) try{speechRec.start();}catch(_){} }
-      );
-      if (!speechRec) { recStatus.textContent = '不支持语音识别'; return; }
-      isRec = true;
-      micBtn.className = 'mic-btn recording';
-      micBtn.textContent = '⏹️';
-      recStatus.innerHTML = '录音中…<br>说话吧';
-      try { speechRec.start(); } catch(_) {}
-    }
-
-    function stopCloudRec() {
-      isRec = false;
-      try { speechRec && speechRec.stop(); } catch(_) {}
-      speechRec = null;
-      micBtn.className = 'mic-btn';
-      micBtn.textContent = '🎙️';
-      interimEl.style.display = 'none';
-      recStatus.innerHTML = '点击麦克风<br>开始录音';
-    }
-
-    micBtn.addEventListener('click', () => {
-      if (isRec) { W.useWhisper ? stopWhisperRec() : stopCloudRec(); return; }
-      if (W.useWhisper) startWhisperRec();
-      else startCloudRec();
-    });
-    btnClear.addEventListener('click', () => { zone.innerHTML = ''; count = 0; interimEl.style.display = 'none'; });
-
-    addSttToggle((ok) => {
-      if (isRec) { W.useWhisper ? stopWhisperRec() : stopCloudRec(); isRec = false; }
-      badge.textContent = (ok || W.useWhisper) && W.ready ? 'Whisper' : '云端';
-      if (!ok && W.useWhisper) {
-        const pill = document.getElementById('stt-toggle');
-        if (pill) { pill.querySelectorAll('.stt-opt').forEach(o => o.classList.remove('active')); pill.querySelector('[data-v="cloud"]').classList.add('active'); }
-        W.useWhisper = false;
-      }
-    });
-
-    W.load((ok) => {
-      badge.textContent = ok ? 'Whisper ✅' : '云端';
-      if (ok) recStatus.innerHTML = '🤖 Whisper 就绪<br>点击开始';
-    });
+    micBtn.addEventListener('click',()=>{if(isRec){W.useWhisper?stopWhisperRec():stopCloudRec();return;}W.useWhisper?startWhisperRec():startCloudRec();});
+    btnClear.addEventListener('click',()=>{zone.innerHTML='';count=0;interimEl.style.display='none';});
+    addSttToggle(ok=>{if(isRec){W.useWhisper?stopWhisperRec():stopCloudRec();isRec=false;}badge.textContent=(ok&&W.ready)?'Whisper ✅':'云端';});
+    W.load(ok=>{badge.textContent=ok?'Whisper ✅':'云端';if(ok)recStatus.innerHTML='🤖 Whisper 就绪<br>点击开始';});
     return;
   }
 
   /* ═══════════════════════════════════════
-     PLAY MODE — Timestamp playback
+     PLAY MODE
   ═══════════════════════════════════════ */
-  const raw = params.get('data');
-  if (!raw) {
-    document.getElementById('root').innerHTML = '<div class="center-msg"><div class="icon">⚠️</div><div>无字幕数据</div></div>';
-    return;
-  }
-  let data;
-  try { data = JSON.parse(decodeURIComponent(raw)); }
-  catch(e) { document.getElementById('root').innerHTML = '<div class="center-msg"><div class="icon">❌</div><div>数据解析失败</div></div>'; return; }
+  const raw=params.get('data');
+  if(!raw){document.getElementById('root').innerHTML='<div class="center-msg"><div class="icon">⚠️</div><div>无字幕数据</div></div>';return;}
+  let data; try{data=JSON.parse(decodeURIComponent(raw));}catch(e){document.getElementById('root').innerHTML='<div class="center-msg"><div class="icon">❌</div><div>数据解析失败</div></div>';return;}
+  const segs=data.segments||[],totalDur=data.duration||segs[segs.length-1]?.end||60,title=data.title||'气泡字幕';
+  const spList=[...new Set(segs.map(s=>s.speaker||'A'))],colorMap={},hexColor={A:'#5865F2',B:'#27AE60',C:'#E91E8C',D:'#F39C12'};
+  spList.forEach((sp,i)=>{colorMap[sp]=['A','B','C','D'][i%4];});
+  function fmt(s){return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');}
 
-  const segs     = data.segments || [];
-  const totalDur = data.duration || segs[segs.length-1]?.end || 60;
-  const title    = data.title || '气泡字幕';
-  const spList   = [...new Set(segs.map(s=>s.speaker||'A'))];
-  const colorMap = {}; spList.forEach((sp,i)=>{ colorMap[sp]=['A','B','C','D'][i%4]; });
-  const hexColor = {A:'#5865F2',B:'#27AE60',C:'#E91E8C',D:'#F39C12'};
-  function fmt(s){ return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'); }
-
-  document.getElementById('root').innerHTML = `
-    <div class="hdr">
-      <span>🎬</span>
-      <span class="hdr-title">${title}</span>
-      <span class="hdr-badge">${segs.length} 段</span>
-    </div>
+  document.getElementById('root').innerHTML=`
+    <div class="hdr"><span>🎬</span><span class="hdr-title">${title}</span><span class="hdr-badge">${segs.length} 段</span></div>
     <div class="stage"><div class="stage-bg">
-      <div class="zone z-left"   id="z-left"></div>
-      <div class="zone z-right"  id="z-right"></div>
-      <div class="zone z-center" id="z-center"></div>
-      <div class="zone z-top"    id="z-top"></div>
+      <div class="zone z-left" id="z-left"></div><div class="zone z-right" id="z-right"></div>
+      <div class="zone z-center" id="z-center"></div><div class="zone z-top" id="z-top"></div>
       <div class="legend" id="legend"></div>
     </div></div>
     <div class="ctrl">
       <button class="btn btn-sm" id="btn-restart">↩</button>
       <button class="btn btn-play" id="btn-play">▶</button>
       <div class="prog-col">
-        <div class="prog-track" id="prog-track">
-          <div class="prog-fill" id="prog-fill"></div>
-          <div class="prog-thumb" id="prog-thumb"></div>
-        </div>
+        <div class="prog-track" id="prog-track"><div class="prog-fill" id="prog-fill"></div><div class="prog-thumb" id="prog-thumb"></div></div>
         <div class="time-row"><span id="t-cur">0:00</span><span id="t-tot">${fmt(totalDur)}</span></div>
       </div>
       <button class="speed-btn" id="speed-btn">1×</button>
     </div>`;
 
-  const legendEl = document.getElementById('legend');
-  spList.forEach(sp => {
-    legendEl.innerHTML += `<div class="leg-item"><div class="leg-dot" style="background:${hexColor[colorMap[sp]]}"></div><span>说话人 ${sp}</span></div>`;
-  });
+  const legendEl=document.getElementById('legend');
+  spList.forEach(sp=>{legendEl.innerHTML+=`<div class="leg-item"><div class="leg-dot" style="background:${hexColor[colorMap[sp]]}"></div><span>说话人 ${sp}</span></div>`;});
 
-  let curTime=0, playing=false, lastTs=null, rafId=null, speed=1;
-  const SPEEDS=[0.5,1,1.5,2]; let spdIdx=1;
-  const active=new Map();
-
-  function zoneEl(pos){ const p=(pos||'center').toLowerCase(); if(p==='left')return document.getElementById('z-left'); if(p==='right')return document.getElementById('z-right'); if(p==='top')return document.getElementById('z-top'); return document.getElementById('z-center'); }
-  function animCls(pos){ const p=(pos||'center').toLowerCase(); if(p==='left')return 'anim-left'; if(p==='right')return 'anim-right'; if(p==='top')return 'anim-top'; return 'anim-center'; }
-  function showBubble(seg,idx){ if(active.has(idx))return; const zone=zoneEl(seg.position),slot=colorMap[seg.speaker||'A']||'A',pos=(seg.position||'center').toLowerCase(); const el=document.createElement('div'); el.className=`bubble sp-${slot} pos-${pos}`; el.textContent=seg.text; zone.appendChild(el); void el.offsetHeight; el.classList.add(animCls(pos)); while(zone.children.length>2)zone.children[0].remove(); active.set(idx,el); }
-  function hideBubble(idx){ const el=active.get(idx); if(!el)return; active.delete(idx); el.classList.add('anim-out'); setTimeout(()=>el.remove(),240); }
-  function clearAll(){ active.forEach((_,idx)=>{ const el=active.get(idx); if(el)el.remove(); }); active.clear(); ['z-left','z-right','z-center','z-top'].forEach(id=>{ const z=document.getElementById(id); if(z)z.innerHTML=''; }); }
-  function updateUI(){ const pct=totalDur>0?(curTime/totalDur)*100:0; document.getElementById('prog-fill').style.width=pct+'%'; document.getElementById('prog-thumb').style.left=pct+'%'; document.getElementById('t-cur').textContent=fmt(curTime); segs.forEach((seg,idx)=>{ const on=curTime>=seg.start&&curTime<seg.end; if(on&&!active.has(idx))showBubble(seg,idx); if(!on&&active.has(idx))hideBubble(idx); }); }
-  function tick(ts){ if(!playing)return; if(lastTs!==null)curTime+=(ts-lastTs)/1000*speed; lastTs=ts; if(curTime>=totalDur){curTime=totalDur;playing=false;document.getElementById('btn-play').textContent='▶';lastTs=null;updateUI();return;} updateUI(); rafId=requestAnimationFrame(tick); }
-  function play(){ playing=true; document.getElementById('btn-play').textContent='⏸'; lastTs=null; rafId=requestAnimationFrame(tick); }
-  function pause(){ playing=false; document.getElementById('btn-play').textContent='▶'; lastTs=null; if(rafId)cancelAnimationFrame(rafId); }
-  function restart(){ pause(); curTime=0; clearAll(); updateUI(); setTimeout(play,150); }
-
+  let curTime=0,playing=false,lastTs=null,rafId=null,speed=1;
+  const SPEEDS=[0.5,1,1.5,2];let spdIdx=1;const active=new Map();
+  function zoneEl(pos){const p=(pos||'center').toLowerCase();if(p==='left')return document.getElementById('z-left');if(p==='right')return document.getElementById('z-right');if(p==='top')return document.getElementById('z-top');return document.getElementById('z-center');}
+  function animCls(pos){const p=(pos||'center').toLowerCase();if(p==='left')return 'anim-left';if(p==='right')return 'anim-right';if(p==='top')return 'anim-top';return 'anim-center';}
+  function showBubble(seg,idx){if(active.has(idx))return;const zone=zoneEl(seg.position),slot=colorMap[seg.speaker||'A']||'A',pos=(seg.position||'center').toLowerCase();const el=document.createElement('div');el.className=`bubble sp-${slot} pos-${pos}`;el.textContent=seg.text;zone.appendChild(el);void el.offsetHeight;el.classList.add(animCls(pos));while(zone.children.length>2)zone.children[0].remove();active.set(idx,el);}
+  function hideBubble(idx){const el=active.get(idx);if(!el)return;active.delete(idx);el.classList.add('anim-out');setTimeout(()=>el.remove(),240);}
+  function clearAll(){active.forEach((_,idx)=>{const el=active.get(idx);if(el)el.remove();});active.clear();['z-left','z-right','z-center','z-top'].forEach(id=>{const z=document.getElementById(id);if(z)z.innerHTML='';});}
+  function updateUI(){const pct=totalDur>0?(curTime/totalDur)*100:0;document.getElementById('prog-fill').style.width=pct+'%';document.getElementById('prog-thumb').style.left=pct+'%';document.getElementById('t-cur').textContent=fmt(curTime);segs.forEach((seg,idx)=>{const on=curTime>=seg.start&&curTime<seg.end;if(on&&!active.has(idx))showBubble(seg,idx);if(!on&&active.has(idx))hideBubble(idx);});}
+  function tick(ts){if(!playing)return;if(lastTs!==null)curTime+=(ts-lastTs)/1000*speed;lastTs=ts;if(curTime>=totalDur){curTime=totalDur;playing=false;document.getElementById('btn-play').textContent='▶';lastTs=null;updateUI();return;}updateUI();rafId=requestAnimationFrame(tick);}
+  function play(){playing=true;document.getElementById('btn-play').textContent='⏸';lastTs=null;rafId=requestAnimationFrame(tick);}
+  function pause(){playing=false;document.getElementById('btn-play').textContent='▶';lastTs=null;if(rafId)cancelAnimationFrame(rafId);}
+  function restart(){pause();curTime=0;clearAll();updateUI();setTimeout(play,150);}
   document.getElementById('btn-play').addEventListener('click',()=>playing?pause():play());
   document.getElementById('btn-restart').addEventListener('click',restart);
-  document.getElementById('speed-btn').addEventListener('click',()=>{ spdIdx=(spdIdx+1)%SPEEDS.length; speed=SPEEDS[spdIdx]; document.getElementById('speed-btn').textContent=speed+'×'; });
-  document.getElementById('prog-track').addEventListener('click',e=>{ const rect=document.getElementById('prog-track').getBoundingClientRect(); curTime=Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width))*totalDur; clearAll(); updateUI(); });
+  document.getElementById('speed-btn').addEventListener('click',()=>{spdIdx=(spdIdx+1)%SPEEDS.length;speed=SPEEDS[spdIdx];document.getElementById('speed-btn').textContent=speed+'×';});
+  document.getElementById('prog-track').addEventListener('click',e=>{const rect=document.getElementById('prog-track').getBoundingClientRect();curTime=Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width))*totalDur;clearAll();updateUI();});
   updateUI();
 })();
 </script>
