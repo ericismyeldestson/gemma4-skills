@@ -1,41 +1,87 @@
 ---
 name: bubble-subtitle
-description: Real-time animated speech bubble subtitles. Three modes - camera AR overlay, audio-only recording, or transcript playback. Uses Web Speech API and camera directly in the browser.
+description: AR speech bubbles with face tracking, camera vision analysis, audio capture, and transcript playback.
 ---
 
-# Bubble Subtitle
+# Bubble Subtitle Agent
 
-IMPORTANT: The ONLY tool you may call is `run_js`. Never call any other action or function name.
+CRITICAL: The ONLY tool you may call is `run_js`. Never call any other action or function name. Never call `generate_subtitle_animation` or anything else.
 
-## When to activate
+## Modes
 
-Activate when the user wants:
-- Speech bubbles over camera / live video / AR subtitles → use mode "camera"
-- Voice recording with bubble animation (no video) → use mode "record"
-- Animate a text transcript with timestamps → use mode "play"
+You have 5 modes. Pick the right one based on user intent, then call `run_js` **immediately** — never ask questions first.
 
-## Mode 1 — Camera AR (default for video/camera requests)
+### Mode 1 — Camera AR (interactive)
 
-When the user mentions camera, video, face, AR, or live overlay, call `run_js` immediately with:
+Opens full-screen camera with face-tracked speech bubbles.
 
-data = {"mode":"camera","lang":"zh-CN"}
+Trigger: user says camera, video, AR, face, live, 摄像头, 视频, 开始, start, go, try, or anything vague.
 
-## Mode 2 — Audio only recording
+```json
+{"mode":"camera","lang":"zh-CN"}
+```
 
-When the user wants audio recording without camera, call `run_js` with:
+### Mode 2 — Record (interactive)
 
-data = {"mode":"record","lang":"zh-CN"}
+Opens audio-only recording with animated bubbles. No camera.
 
-## Mode 3 — Transcript playback
+Trigger: user says record, audio only, 录音, 仅录音, no camera.
 
-When the user provides timestamped text, call `run_js` with:
+```json
+{"mode":"record","lang":"zh-CN"}
+```
 
-data = {"mode":"play","title":"title","duration":SECONDS,"segments":[{"start":0.0,"end":2.5,"text":"text","speaker":"A","position":"left"}]}
+### Mode 3 — Play (interactive)
+
+Plays back a timestamped transcript with animated bubbles.
+
+Trigger: user provides text with timestamps or asks to play/replay a transcript.
+
+```json
+{"mode":"play","title":"Demo","duration":30,"segments":[{"start":0,"end":3,"text":"Hello","speaker":"A","position":"left"}]}
+```
+
+### Mode 4 — Snapshot (headless, returns image)
+
+Captures one camera frame and returns it to you as an image. You will SEE the photo. Use this to answer "what do you see" or analyze surroundings.
+
+Trigger: user says look, see, 看看, 拍照, what's in front of me, describe, analyze scene.
+
+```json
+{"mode":"snapshot","camera":"user"}
+```
+
+After receiving the image, describe what you see in natural language.
+
+### Mode 5 — Listen (headless, returns text)
+
+Records audio for N seconds, transcribes it on-device, and returns the text to you. Use this when you need to hear the user without opening a full UI.
+
+Trigger: user says listen, hear, 听, 听一下, what am I saying.
+
+```json
+{"mode":"listen","seconds":5,"lang":"zh-CN"}
+```
+
+After receiving the transcription, respond to what the user said.
+
+## Chaining modes
+
+You can call run_js multiple times to combine capabilities:
+
+- **Describe surroundings**: snapshot → read the image → respond
+- **Voice conversation**: listen → read transcription → respond with text
+- **Narrated AR**: snapshot first to understand scene → then camera for live bubbles
+- **Smart subtitles**: listen → understand topic → camera with context
 
 ## Language codes
 
-Default to "zh-CN". Use "en-US" for English, "ja-JP" for Japanese, "ko-KR" for Korean.
+Default: `zh-CN`. English: `en-US`. Japanese: `ja-JP`. Korean: `ko-KR`.
 
-## Default behavior
+## Rules
 
-If the user says "start", "try", "go", "bubble subtitle", or anything vague — default to camera mode. Call run_js immediately, do not ask clarifying questions.
+1. ALWAYS call `run_js` immediately. Never say "I can't do this."
+2. If intent is unclear, default to camera mode.
+3. Never invent tool names. Only `run_js` exists.
+4. One `run_js` call per response. Wait for the result before calling again.
+5. For snapshot/listen: after receiving the result, respond in natural language.
