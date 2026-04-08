@@ -15,7 +15,7 @@ window['ai_edge_gallery_get_result'] = async (data) => {
     // ════════════════════════════════════════
     if (mode === 'camera') {
       return JSON.stringify({
-        result: '📷 AR camera mode with face-tracked speech bubbles is now active.',
+        result: 'AR camera mode started. Speak to see face-tracked bubbles.',
         webview: { url: `webview.html?mode=camera&lang=${lang}`, aspectRatio: 0.75 }
       });
     }
@@ -25,144 +25,147 @@ window['ai_edge_gallery_get_result'] = async (data) => {
     // ════════════════════════════════════════
     if (mode === 'record') {
       return JSON.stringify({
-        result: '🎙️ Audio recording mode with animated bubbles is now active.',
+        result: 'Audio recording mode started. Tap mic to begin.',
         webview: { url: `webview.html?mode=record&lang=${lang}`, aspectRatio: 1.5 }
       });
     }
 
     // ════════════════════════════════════════
-    // Mode 4: Snapshot — capture camera frame,
-    //   return as image for Gemma 4 vision
+    // Mode 4: Snapshot — capture camera frame
     // ════════════════════════════════════════
     if (mode === 'snapshot') {
+      // Check if camera API is available in this webview context
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        // Hidden webview lacks camera permission — fall back to interactive camera
+        return JSON.stringify({
+          result: 'Snapshot not available in background. Opening camera mode instead.',
+          webview: { url: `webview.html?mode=camera&lang=${lang}`, aspectRatio: 0.75 }
+        });
+      }
+
       const facing = parsed.camera || 'user';
-      const width  = parsed.width  || 640;
-      const height = parsed.height || 480;
 
       let stream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: facing, width: { ideal: width }, height: { ideal: height } },
+          video: { facingMode: facing, width: { ideal: 640 }, height: { ideal: 480 } },
           audio: false
         });
       } catch (e) {
-        return JSON.stringify({ error: 'Camera access denied or unavailable: ' + e.message });
+        // Camera denied — fall back to interactive camera mode
+        return JSON.stringify({
+          result: 'Camera access unavailable. Opening camera mode instead.',
+          webview: { url: `webview.html?mode=camera&lang=${lang}`, aspectRatio: 0.75 }
+        });
       }
 
-      // Create off-screen video + canvas
-      const video  = document.createElement('video');
-      video.srcObject = stream;
-      video.setAttribute('playsinline', '');
-      video.muted = true;
-      await video.play();
+      try {
+        const video = document.createElement('video');
+        video.srcObject = stream;
+        video.setAttribute('playsinline', '');
+        video.muted = true;
 
-      // Wait for at least one frame
-      await new Promise(r => setTimeout(r, 500));
+        // Wait for video to be ready
+        await new Promise((resolve, reject) => {
+          video.onloadeddata = resolve;
+          video.onerror = reject;
+          setTimeout(reject, 3000); // 3s timeout
+          video.play().catch(reject);
+        });
 
-      const canvas = document.createElement('canvas');
-      canvas.width  = video.videoWidth  || width;
-      canvas.height = video.videoHeight || height;
-      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+        // Extra frame delay for camera warmup
+        await new Promise(r => setTimeout(r, 300));
 
-      // Stop camera immediately
-      stream.getTracks().forEach(t => t.stop());
+        const canvas = document.createElement('canvas');
+        const vw = video.videoWidth || 640;
+        const vh = video.videoHeight || 480;
+        canvas.width = vw;
+        canvas.height = vh;
+        canvas.getContext('2d').drawImage(video, 0, 0, vw, vh);
 
-      // Convert to JPEG base64 (smaller than PNG)
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-      const base64  = dataUrl.split(',')[1];
+        stream.getTracks().forEach(t => t.stop());
 
-      const camLabel = facing === 'user' ? 'front' : 'rear';
-      return JSON.stringify({
-        result: `Snapshot captured from ${camLabel} camera (${canvas.width}x${canvas.height}).`,
-        image: base64
-      });
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        const base64 = dataUrl.split(',')[1];
+
+        return JSON.stringify({
+          result: 'Photo captured. Describe what you see.',
+          image: base64
+        });
+      } catch (e2) {
+        stream.getTracks().forEach(t => t.stop());
+        // Fall back to interactive camera
+        return JSON.stringify({
+          result: 'Photo capture failed. Opening camera mode instead.',
+          webview: { url: `webview.html?mode=camera&lang=${lang}`, aspectRatio: 0.75 }
+        });
+      }
     }
 
     // ════════════════════════════════════════
-    // Mode 5: Listen — capture audio,
-    //   transcribe on-device, return text
+    // Mode 5: Listen — capture + transcribe
     // ════════════════════════════════════════
     if (mode === 'listen') {
-      const seconds  = Math.min(Math.max(parsed.seconds || 5, 1), 15);
+      const seconds = Math.min(Math.max(parsed.seconds || 8, 2), 15);
       const listenLang = decodeURIComponent(lang);
 
-      // Strategy A: Web Speech API (preferred — lightweight)
+      // Check mic availability
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        return JSON.stringify({
+          result: 'Microphone not available. Opening recording mode instead.',
+          webview: { url: `webview.html?mode=record&lang=${lang}`, aspectRatio: 1.5 }
+        });
+      }
+
+      // Try Web Speech API first
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (SR) {
-        const result = await new Promise((resolve) => {
-          const rec = new SR();
-          rec.lang = listenLang;
-          rec.continuous = true;
-          rec.interimResults = false;
-          const finals = [];
-          let resolved = false;
+        try {
+          const result = await new Promise((resolve) => {
+            const rec = new SR();
+            rec.lang = listenLang;
+            rec.continuous = true;
+            rec.interimResults = false;
+            const finals = [];
+            let done = false;
 
-          rec.onresult = (e) => {
-            for (let i = e.resultIndex; i < e.results.length; i++) {
-              if (e.results[i].isFinal) finals.push(e.results[i][0].transcript.trim());
+            rec.onresult = (e) => {
+              for (let i = e.resultIndex; i < e.results.length; i++) {
+                if (e.results[i].isFinal) finals.push(e.results[i][0].transcript.trim());
+              }
+            };
+            rec.onerror = (e) => {
+              if (!done) { done = true; resolve({ ok: false, err: e.error }); }
+            };
+            rec.onend = () => {
+              if (!done) { done = true; resolve({ ok: true, text: finals.join('') }); }
+            };
+
+            try { rec.start(); } catch(e) {
+              done = true; resolve({ ok: false, err: e.message });
             }
-          };
-          rec.onerror = (e) => {
-            if (!resolved) { resolved = true; resolve({ ok: false, err: e.error }); }
-          };
-          rec.onend = () => {
-            if (!resolved) { resolved = true; resolve({ ok: true, text: finals.join('') }); }
-          };
 
-          rec.start();
-          setTimeout(() => {
-            if (!resolved) { try { rec.stop(); } catch(_){} }
-          }, seconds * 1000);
-        });
-
-        if (result.ok) {
-          const text = result.text || '';
-          return JSON.stringify({
-            result: text
-              ? `Transcription (${seconds}s, ${listenLang}): ${text}`
-              : `[Silence — no speech detected in ${seconds} seconds]`
+            setTimeout(() => {
+              if (!done) { try { rec.stop(); } catch(_){} }
+            }, seconds * 1000);
           });
-        }
-        // Fall through to Strategy B if Web Speech fails
-      }
 
-      // Strategy B: MediaRecorder + return audio metadata
-      //   (Cannot run Whisper here without loading 75MB model;
-      //    return helpful error so Gemma 4 can suggest camera/record mode)
-      try {
-        const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-        const mimeType = ['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg']
-          .find(t => MediaRecorder.isTypeSupported(t)) || '';
-        const recorder = new MediaRecorder(audioStream, mimeType ? { mimeType } : {});
-        const chunks = [];
-
-        const audioResult = await new Promise((resolve) => {
-          recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
-          recorder.onstop = () => {
-            audioStream.getTracks().forEach(t => t.stop());
-            const blob = new Blob(chunks, { type: mimeType || 'audio/webm' });
-            // Check if there's meaningful audio (size > threshold)
-            if (blob.size < 2000) {
-              resolve({ text: '', silence: true });
+          if (result.ok) {
+            const text = result.text || '';
+            if (text) {
+              return JSON.stringify({ result: 'I heard: ' + text });
             } else {
-              resolve({ text: '', hasAudio: true, sizeKB: Math.round(blob.size / 1024) });
+              return JSON.stringify({ result: 'I listened for ' + seconds + ' seconds but heard no speech.' });
             }
-          };
-          recorder.start();
-          setTimeout(() => { try { recorder.stop(); } catch(_){} }, seconds * 1000);
-        });
-
-        if (audioResult.silence) {
-          return JSON.stringify({ result: `[Silence — no audio detected in ${seconds}s]` });
-        }
-        return JSON.stringify({
-          result: `Audio captured (${audioResult.sizeKB}KB, ${seconds}s) but speech recognition unavailable in this context. Suggest using camera or record mode for real-time transcription.`
-        });
-
-      } catch (e) {
-        return JSON.stringify({ error: 'Microphone access denied: ' + e.message });
+          }
+        } catch(e) { /* fall through */ }
       }
+
+      // Fallback: suggest interactive mode
+      return JSON.stringify({
+        result: 'Speech recognition not available here. Opening recording mode instead.',
+        webview: { url: `webview.html?mode=record&lang=${lang}`, aspectRatio: 1.5 }
+      });
     }
 
     // ════════════════════════════════════════
@@ -170,9 +173,8 @@ window['ai_edge_gallery_get_result'] = async (data) => {
     // ════════════════════════════════════════
     const segs = parsed.segments;
     if (!segs || !Array.isArray(segs) || segs.length === 0) {
-      // No data → fall back to camera
       return JSON.stringify({
-        result: '📷 No transcript data found. Launching AR camera mode.',
+        result: 'No transcript data. Opening camera mode instead.',
         webview: { url: `webview.html?mode=camera&lang=${lang}`, aspectRatio: 0.75 }
       });
     }
@@ -187,12 +189,12 @@ window['ai_edge_gallery_get_result'] = async (data) => {
     const mm = Math.floor(parsed.duration / 60), ss = Math.round(parsed.duration % 60);
 
     return JSON.stringify({
-      result: `Generated ${segs.length} subtitle segments, duration ${mm}m${ss}s.`,
+      result: `Playing ${segs.length} subtitle segments (${mm}m${ss}s).`,
       webview: { url: `webview.html?mode=play&data=${encoded}`, aspectRatio: 1.5 }
     });
 
   } catch (e) {
-    return JSON.stringify({ error: 'Processing error: ' + e.message });
+    return JSON.stringify({ error: 'Error: ' + e.message });
   }
 };
 </script>
