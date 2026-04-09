@@ -1,0 +1,18 @@
+{
+  "name": "gemma4-e2b-proxy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal secure proxy for Gemma 4 mobile to execute deterministic E2B jobs.",
+  "scripts": {
+    "dev": "node --env-file=.env.local server.mjs",
+    "start": "node server.mjs",
+    "check": "node --check server.mjs"
+  },
+  "dependencies": {
+    "e2b": "^2.13.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

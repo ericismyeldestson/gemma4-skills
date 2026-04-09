@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<!-- Copyright 2026 Google LLC. Licensed under Apache 2.0 -->
+<html lang="zh">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>E2B Runner</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #09111f;
+      --bg-2: #0f1a2f;
+      --panel: rgba(12, 23, 44, 0.78);
+      --line: rgba(255, 255, 255, 0.11);
+      --text: #edf3ff;
+      --muted: rgba(237, 243, 255, 0.68);
+      --accent: #53d3b1;
+      --accent-2: #62a7ff;
+      --warn: #ffb84d;
+      --bad: #ff6c76;
+      --ok: #57d98b;
+      --shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+    }
+    html, body { height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(98, 167, 255, 0.24), transparent 34%),
+        radial-gradient(circle at top right, rgba(83, 211, 177, 0.18), transparent 28%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+      overflow: hidden;
+    }
+    a { color: inherit; }
+    #app {
+      height: 100%;
+      overflow-y: auto;
+      padding: 18px 16px 28px;
+    }
+    .shell {
+      max-width: 720px;
+      margin: 0 auto;
+      display: grid;
+      gap: 14px;
+    }
+    .hero {
+      padding: 18px;
+      border-radius: 24px;
+      background:
+        linear-gradient(135deg, rgba(98, 167, 255, 0.17), rgba(83, 211, 177, 0.12)),
+        var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .title {
+      font-size: 23px;
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--muted);
+    }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .chip {
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .card {
+      border-radius: 20px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .card-body {
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+    }
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--warn);
+      flex-shrink: 0;
+    }
+    .dot.live { background: var(--accent-2); animation: pulse 1.4s ease-in-out infinite; }
+    .dot.ok { background: var(--ok); }
+    .dot.bad { background: var(--bad); }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(98, 167, 255, 0.42); }
+      50% { box-shadow: 0 0 0 10px rgba(98, 167, 255, 0); }
+    }
+    .status-copy {
+      display: grid;
+      gap: 3px;
+      min-width: 0;
+    }
+    .status-copy strong {
+      font-size: 14px;
+    }
+    .status-copy span {
+      font-size: 12px;
+      color: var(--muted);
+      word-break: break-word;
+    }
+    .meta {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .meta-item {
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .meta-label {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .meta-value {
+      font-size: 13px;
+      line-height: 1.45;
+      word-break: break-word;
+    }
+    .code-box {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      color: #dce7ff;
+      white-space: pre-wrap;
+      word-break: break-word;
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(2, 7, 18, 0.62);
+      border: 1px solid rgba(98, 167, 255, 0.18);
+      max-height: 220px;
+      overflow: auto;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    button, .link-btn {
+      border: none;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.12s ease, opacity 0.2s ease, background 0.2s ease;
+    }
+    button:active, .link-btn:active { transform: scale(0.97); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+      color: #07111f;
+      min-width: 132px;
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .btn-danger {
+      background: rgba(255, 108, 118, 0.12);
+      color: #ffdfe1;
+      border: 1px solid rgba(255, 108, 118, 0.22);
+    }
+    .hint {
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--muted);
+    }
+    .viewer {
+      display: grid;
+      gap: 12px;
+    }
+    .viewer pre {
+      margin: 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      color: #dce7ff;
+      white-space: pre-wrap;
+      word-break: break-word;
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(3, 8, 20, 0.74);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      max-height: 240px;
+      overflow: auto;
+    }
+    .label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .banner {
+      padding: 12px 14px;
+      border-radius: 14px;
+      font-size: 13px;
+      line-height: 1.55;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .banner.warn {
+      background: rgba(255, 184, 77, 0.1);
+      border-color: rgba(255, 184, 77, 0.24);
+      color: #ffe8c2;
+    }
+    .banner.bad {
+      background: rgba(255, 108, 118, 0.1);
+      border-color: rgba(255, 108, 118, 0.24);
+      color: #ffd6da;
+    }
+    .camera-wrap {
+      position: relative;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(2, 7, 18, 0.72);
+      min-height: 240px;
+    }
+    video, img {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: #030711;
+    }
+    .camera-overlay {
+      position: absolute;
+      inset: auto 14px 14px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+    .camera-note {
+      padding: 8px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      color: var(--text);
+      background: rgba(0, 0, 0, 0.46);
+      backdrop-filter: blur(10px);
+    }
+    .hidden { display: none !important; }
+    @media (max-width: 560px) {
+      .meta { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="shell">
+      <section class="hero">
+        <div class="eyebrow">Gemma 4 Mobile x E2B</div>
+        <div class="title" id="hero-title">Preparing remote sandbox job</div>
+        <div class="subtitle" id="hero-subtitle">The phone stays thin. Your proxy holds the real E2B credentials and runs the heavy work.</div>
+        <div class="chips" id="hero-chips"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-body">
+          <div class="section-title">Status</div>
+          <div class="status-row">
+            <div class="dot live" id="status-dot"></div>
+            <div class="status-copy">
+              <strong id="status-title">Waiting</strong>
+              <span id="status-detail">Loading request payload…</span>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn-primary" id="run-btn">Start job</button>
+            <button class="btn-secondary" id="retry-btn">Retry</button>
+            <button class="btn-danger hidden" id="cancel-btn">Cancel</button>
+            <button class="btn-secondary" id="copy-btn">Copy result</button>
+          </div>
+          <div class="hint" id="status-hint">This UI expects a secure proxy endpoint. The real E2B API key should never live on the phone.</div>
+        </div>
+      </section>
+
+      <section class="card" id="camera-card">
+        <div class="card-body">
+          <div class="section-title">Snapshot Input</div>
+          <div class="camera-wrap">
+            <video id="camera-video" autoplay playsinline muted></video>
+            <img id="camera-preview" class="hidden" alt="snapshot preview">
+            <div class="camera-overlay">
+              <div class="camera-note" id="camera-note">Camera idle</div>
+              <div class="actions">
+                <button class="btn-secondary" id="flip-btn">Flip</button>
+                <button class="btn-primary" id="capture-btn">Capture</button>
+                <button class="btn-secondary hidden" id="retake-btn">Retake</button>
+              </div>
+            </div>
+          </div>
+          <div class="hint">Use this mode when the remote E2B job needs a fresh phone photo as `input.jpg`.</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-body">
+          <div class="section-title">Job Spec</div>
+          <div class="meta" id="meta-grid"></div>
+          <div>
+            <div class="label">Execution payload</div>
+            <div class="code-box" id="payload-box"></div>
+          </div>
+          <div class="hint" id="spec-hint"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-body">
+          <div class="section-title">Result</div>
+          <div class="banner hidden" id="message-banner"></div>
+          <div class="viewer">
+            <div>
+              <div class="label">Result text</div>
+              <pre id="result-text">No result yet.</pre>
+            </div>
+            <div>
+              <div class="label">Stdout</div>
+              <pre id="stdout-text">Waiting…</pre>
+            </div>
+            <div>
+              <div class="label">Stderr</div>
+              <pre id="stderr-text">Waiting…</pre>
+            </div>
+          </div>
+          <div class="actions" id="result-actions"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const params = new URLSearchParams(location.search);
+      const requestId = params.get('requestId');
+      const rawData = params.get('data');
+      const state = {
+        payload: null,
+        jobId: '',
+        polling: null,
+        jobStatusUrl: '',
+        cancelUrl: '',
+        stream: null,
+        facingMode: 'environment',
+        snapshotReady: false,
+        snapshotFile: null
+      };
+
+      const els = {
+        heroTitle: document.getElementById('hero-title'),
+        heroSubtitle: document.getElementById('hero-subtitle'),
+        heroChips: document.getElementById('hero-chips'),
+        statusDot: document.getElementById('status-dot'),
+        statusTitle: document.getElementById('status-title'),
+        statusDetail: document.getElementById('status-detail'),
+        statusHint: document.getElementById('status-hint'),
+        runBtn: document.getElementById('run-btn'),
+        retryBtn: document.getElementById('retry-btn'),
+        cancelBtn: document.getElementById('cancel-btn'),
+        copyBtn: document.getElementById('copy-btn'),
+        cameraCard: document.getElementById('camera-card'),
+        cameraVideo: document.getElementById('camera-video'),
+        cameraPreview: document.getElementById('camera-preview'),
+        cameraNote: document.getElementById('camera-note'),
+        flipBtn: document.getElementById('flip-btn'),
+        captureBtn: document.getElementById('capture-btn'),
+        retakeBtn: document.getElementById('retake-btn'),
+        metaGrid: document.getElementById('meta-grid'),
+        payloadBox: document.getElementById('payload-box'),
+        specHint: document.getElementById('spec-hint'),
+        messageBanner: document.getElementById('message-banner'),
+        resultText: document.getElementById('result-text'),
+        stdoutText: document.getElementById('stdout-text'),
+        stderrText: document.getElementById('stderr-text'),
+        resultActions: document.getElementById('result-actions')
+      };
+
+      function loadPayload() {
+        if (requestId) {
+          try {
+            const stored = localStorage.getItem(requestId);
+            if (stored) {
+              localStorage.removeItem(requestId);
+              return JSON.parse(stored);
+            }
+          } catch (_) {}
+        }
+        if (rawData) {
+          try {
+            return JSON.parse(decodeURIComponent(rawData));
+          } catch (_) {}
+        }
+        return null;
+      }
+
+      function normalizePayload(payload) {
+        if (!payload || typeof payload !== 'object') return null;
+        const mode = payload.mode || 'run';
+        const language = payload.language || (payload.command ? 'shell' : 'python');
+        const executionType = payload.command ? 'command' : 'code';
+        return {
+          mode,
+          endpoint: payload.endpoint || '',
+          authToken: payload.authToken || '',
+          title: payload.title || (executionType === 'command' ? 'Remote command job' : 'Remote code job'),
+          language,
+          command: payload.command || '',
+          code: payload.code || '',
+          files: Array.isArray(payload.files) ? payload.files.slice() : [],
+          metadata: payload.metadata || {},
+          resultPath: payload.resultPath || '',
+          pollIntervalMs: Math.max(500, Number(payload.pollIntervalMs || 2000)),
+          autoStart: payload.autoStart !== false,
+          camera: payload.camera || 'environment',
+          executionType
+        };
+      }
+
+      function setStatus(kind, title, detail) {
+        els.statusTitle.textContent = title;
+        els.statusDetail.textContent = detail;
+        els.statusDot.className = 'dot';
+        if (kind === 'live') els.statusDot.classList.add('live');
+        if (kind === 'ok') els.statusDot.classList.add('ok');
+        if (kind === 'bad') els.statusDot.classList.add('bad');
+      }
+
+      function showBanner(text, type) {
+        if (!text) {
+          els.messageBanner.className = 'banner hidden';
+          els.messageBanner.textContent = '';
+          return;
+        }
+        els.messageBanner.textContent = text;
+        els.messageBanner.className = 'banner';
+        if (type) els.messageBanner.classList.add(type);
+      }
+
+      function chip(label) {
+        const div = document.createElement('div');
+        div.className = 'chip';
+        div.textContent = label;
+        return div;
+      }
+
+      function renderPayload() {
+        const payload = state.payload;
+        els.heroTitle.textContent = payload.title;
+        els.heroSubtitle.textContent = payload.mode === 'snapshot_run'
+          ? 'Capture one phone image, then submit a remote sandbox job through your secure proxy.'
+          : 'Submit a deterministic command or code job to your secure E2B proxy.';
+        els.heroChips.innerHTML = '';
+        [payload.mode, payload.language, payload.executionType, payload.resultPath ? 'artifact' : 'no artifact']
+          .forEach(value => els.heroChips.appendChild(chip(value)));
+
+        els.metaGrid.innerHTML = '';
+        [
+          ['Endpoint', payload.endpoint],
+          ['Language', payload.language],
+          ['Execution', payload.executionType],
+          ['Files', String(payload.files.length + (state.snapshotReady ? 1 : 0))]
+        ].forEach(([label, value]) => {
+          const card = document.createElement('div');
+          card.className = 'meta-item';
+          card.innerHTML = `<div class="meta-label">${label}</div><div class="meta-value">${escapeHtml(value)}</div>`;
+          els.metaGrid.appendChild(card);
+        });
+
+        els.payloadBox.textContent = payload.executionType === 'command' ? payload.command : payload.code;
+        els.specHint.textContent = payload.executionType === 'command'
+          ? 'The phone sends a shell command to your proxy. The proxy decides how to run and contain it inside E2B.'
+          : 'The phone sends source code to your proxy. The proxy writes it into the sandbox and executes it there.';
+
+        els.cameraCard.classList.toggle('hidden', payload.mode !== 'snapshot_run');
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;');
+      }
+
+      function buildHeaders() {
+        const headers = { 'Content-Type': 'application/json' };
+        if (state.payload.authToken) headers.Authorization = 'Bearer ' + state.payload.authToken;
+        return headers;
+      }
+
+      function joinUrl(base, suffix) {
+        return String(base).replace(/\/+$/, '') + suffix;
+      }
+
+      function isTerminal(status) {
+        return ['completed', 'failed', 'cancelled'].includes(String(status || '').toLowerCase());
+      }
+
+      function normalizeJob(data) {
+        return {
+          jobId: data.jobId || data.id || state.jobId,
+          status: String(data.status || (data.completed ? 'completed' : 'queued')).toLowerCase(),
+          statusMessage: data.statusMessage || data.message || '',
+          resultText: data.resultText || data.summary || '',
+          stdout: data.stdout || '',
+          stderr: data.stderr || '',
+          exitCode: data.exitCode,
+          sandboxId: data.sandboxId || '',
+          statusUrl: data.statusUrl || '',
+          cancelUrl: data.cancelUrl || '',
+          downloadUrl: data.downloadUrl || '',
+          downloadName: data.downloadName || ''
+        };
+      }
+
+      function renderJob(job) {
+        state.jobId = job.jobId || state.jobId;
+        if (job.statusUrl) state.jobStatusUrl = job.statusUrl;
+        if (job.cancelUrl) state.cancelUrl = job.cancelUrl;
+
+        const map = {
+          queued: ['live', 'Queued', job.statusMessage || 'Job accepted by proxy.'],
+          running: ['live', 'Running', job.statusMessage || 'Sandbox is executing the task.'],
+          completed: ['ok', 'Completed', job.statusMessage || 'Remote sandbox finished successfully.'],
+          failed: ['bad', 'Failed', job.statusMessage || 'Remote sandbox finished with an error.'],
+          cancelled: ['bad', 'Cancelled', job.statusMessage || 'The job was cancelled.']
+        };
+        const tuple = map[job.status] || ['live', 'Working', job.statusMessage || 'Polling remote status…'];
+        setStatus(tuple[0], tuple[1], tuple[2]);
+
+        els.cancelBtn.classList.toggle('hidden', isTerminal(job.status));
+        if (job.resultText) els.resultText.textContent = job.resultText;
+        if (job.stdout) els.stdoutText.textContent = job.stdout;
+        if (job.stderr) els.stderrText.textContent = job.stderr;
+
+        const info = [];
+        if (typeof job.exitCode === 'number') info.push('exit=' + job.exitCode);
+        if (job.sandboxId) info.push('sandbox=' + job.sandboxId);
+        showBanner(info.join('  |  '), job.status === 'failed' ? 'bad' : job.status === 'completed' ? 'warn' : '');
+        renderResultActions(job);
+      }
+
+      function renderResultActions(job) {
+        els.resultActions.innerHTML = '';
+        if (job.downloadUrl) {
+          const link = document.createElement('a');
+          link.className = 'link-btn btn-secondary';
+          link.href = job.downloadUrl;
+          link.target = '_blank';
+          link.rel = 'noreferrer';
+          link.textContent = job.downloadName || 'Open artifact';
+          els.resultActions.appendChild(link);
+        }
+        if (job.sandboxId) {
+          const note = document.createElement('div');
+          note.className = 'hint';
+          note.textContent = 'Sandbox ID: ' + job.sandboxId;
+          els.resultActions.appendChild(note);
+        }
+      }
+
+      function collectSubmission() {
+        const payload = state.payload;
+        const files = payload.files.slice();
+        if (state.snapshotReady && state.snapshotFile) files.push(state.snapshotFile);
+        return {
+          title: payload.title,
+          language: payload.language,
+          executionType: payload.executionType,
+          command: payload.command || undefined,
+          code: payload.code || undefined,
+          files,
+          metadata: payload.metadata,
+          resultPath: payload.resultPath || undefined
+        };
+      }
+
+      async function submitJob() {
+        if (!state.payload.endpoint) {
+          setStatus('bad', 'Configuration error', 'Missing proxy endpoint.');
+          showBanner('Provide an HTTPS proxy endpoint in the skill data before running.', 'bad');
+          return;
+        }
+        if (state.payload.mode === 'snapshot_run' && !state.snapshotReady) {
+          setStatus('bad', 'Snapshot required', 'Capture an image before submitting this job.');
+          showBanner('This mode expects a fresh photo from the phone camera.', 'warn');
+          return;
+        }
+
+        setStatus('live', 'Submitting', 'Sending job to proxy…');
+        showBanner('', '');
+        els.stdoutText.textContent = 'Waiting…';
+        els.stderrText.textContent = 'Waiting…';
+        els.resultText.textContent = 'Waiting…';
+
+        try {
+          const res = await fetch(state.payload.endpoint, {
+            method: 'POST',
+            headers: buildHeaders(),
+            body: JSON.stringify(collectSubmission())
+          });
+          const body = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(body.error || body.message || ('HTTP ' + res.status));
+          const job = normalizeJob(body);
+          renderJob(job);
+          if (!isTerminal(job.status)) startPolling();
+        } catch (err) {
+          setStatus('bad', 'Submit failed', err.message);
+          showBanner(err.message, 'bad');
+        }
+      }
+
+      function startPolling() {
+        stopPolling();
+        const statusUrl = state.jobStatusUrl || joinUrl(state.payload.endpoint, '/' + encodeURIComponent(state.jobId));
+        state.polling = setInterval(() => pollJob(statusUrl), state.payload.pollIntervalMs);
+        pollJob(statusUrl);
+      }
+
+      function stopPolling() {
+        if (state.polling) {
+          clearInterval(state.polling);
+          state.polling = null;
+        }
+      }
+
+      async function pollJob(statusUrl) {
+        if (!statusUrl || !state.jobId) return;
+        try {
+          const res = await fetch(statusUrl, { method: 'GET', headers: buildHeaders() });
+          const body = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(body.error || body.message || ('HTTP ' + res.status));
+          const job = normalizeJob(body);
+          renderJob(job);
+          if (isTerminal(job.status)) stopPolling();
+        } catch (err) {
+          setStatus('bad', 'Polling failed', err.message);
+          showBanner(err.message, 'bad');
+          stopPolling();
+        }
+      }
+
+      async function cancelJob() {
+        if (!state.jobId) return;
+        const cancelUrl = state.cancelUrl || joinUrl(state.payload.endpoint, '/' + encodeURIComponent(state.jobId) + '/cancel');
+        try {
+          const res = await fetch(cancelUrl, { method: 'POST', headers: buildHeaders() });
+          const body = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(body.error || body.message || ('HTTP ' + res.status));
+          stopPolling();
+          renderJob(normalizeJob(body));
+        } catch (err) {
+          showBanner(err.message, 'bad');
+        }
+      }
+
+      async function copyResult() {
+        const text = [
+          'Result',
+          els.resultText.textContent,
+          '',
+          'Stdout',
+          els.stdoutText.textContent,
+          '',
+          'Stderr',
+          els.stderrText.textContent
+        ].join('\n');
+        try {
+          await navigator.clipboard.writeText(text);
+          showBanner('Result copied to clipboard.', 'warn');
+        } catch (_) {
+          showBanner('Clipboard is unavailable in this webview.', 'bad');
+        }
+      }
+
+      async function startCamera() {
+        stopCamera();
+        try {
+          state.stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: state.facingMode },
+            audio: false
+          });
+          els.cameraVideo.srcObject = state.stream;
+          els.cameraPreview.classList.add('hidden');
+          els.cameraVideo.classList.remove('hidden');
+          els.captureBtn.classList.remove('hidden');
+          els.retakeBtn.classList.add('hidden');
+          els.cameraNote.textContent = state.facingMode === 'user' ? 'Front camera live' : 'Rear camera live';
+        } catch (err) {
+          setStatus('bad', 'Camera unavailable', err.message);
+          showBanner('Camera access failed: ' + err.message, 'bad');
+        }
+      }
+
+      function stopCamera() {
+        if (state.stream) {
+          state.stream.getTracks().forEach(track => track.stop());
+          state.stream = null;
+        }
+      }
+
+      function captureSnapshot() {
+        const video = els.cameraVideo;
+        const canvas = document.createElement('canvas');
+        const width = video.videoWidth || 720;
+        const height = video.videoHeight || 960;
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d').drawImage(video, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+        els.cameraPreview.src = dataUrl;
+        els.cameraPreview.classList.remove('hidden');
+        els.cameraVideo.classList.add('hidden');
+        els.captureBtn.classList.add('hidden');
+        els.retakeBtn.classList.remove('hidden');
+        els.cameraNote.textContent = 'Snapshot ready as input.jpg';
+        state.snapshotReady = true;
+        state.snapshotFile = {
+          name: 'input.jpg',
+          content: dataUrl.split(',')[1],
+          encoding: 'base64',
+          contentType: 'image/jpeg'
+        };
+        stopCamera();
+        renderPayload();
+      }
+
+      function attachEvents() {
+        els.runBtn.addEventListener('click', submitJob);
+        els.retryBtn.addEventListener('click', submitJob);
+        els.cancelBtn.addEventListener('click', cancelJob);
+        els.copyBtn.addEventListener('click', copyResult);
+        els.flipBtn.addEventListener('click', async () => {
+          state.facingMode = state.facingMode === 'user' ? 'environment' : 'user';
+          await startCamera();
+        });
+        els.captureBtn.addEventListener('click', captureSnapshot);
+        els.retakeBtn.addEventListener('click', async () => {
+          state.snapshotReady = false;
+          state.snapshotFile = null;
+          renderPayload();
+          await startCamera();
+        });
+      }
+
+      function init() {
+        state.payload = normalizePayload(loadPayload());
+        if (!state.payload) {
+          setStatus('bad', 'No payload', 'The skill payload could not be loaded.');
+          showBanner('Open this view from the e2b-runner skill so it receives a valid request payload.', 'bad');
+          els.cameraCard.classList.add('hidden');
+          return;
+        }
+
+        state.facingMode = state.payload.camera;
+        renderPayload();
+        attachEvents();
+        setStatus('live', 'Ready', 'Review the spec and start the remote sandbox job.');
+        els.statusHint.textContent = state.payload.mode === 'snapshot_run'
+          ? 'Capture a photo first. The proxy then uploads it to E2B as input.jpg.'
+          : 'The job is deterministic: the phone sends explicit command/code to your proxy.';
+
+        if (state.payload.mode === 'snapshot_run') startCamera();
+        if (state.payload.autoStart && state.payload.mode !== 'snapshot_run') submitJob();
+      }
+
+      window.addEventListener('beforeunload', () => {
+        stopPolling();
+        stopCamera();
+      });
+
+      init();
+    })();
+  </script>
+</body>
+</html>

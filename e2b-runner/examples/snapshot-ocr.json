@@ -1,0 +1,11 @@
+{
+  "mode": "snapshot_run",
+  "endpoint": "https://your-domain.example/api/e2b/jobs",
+  "authToken": "replace-with-proxy-token",
+  "title": "OCR and summarize snapshot",
+  "language": "python",
+  "code": "from pathlib import Path\nprint('input exists:', Path('/workspace/input.jpg').exists())\nprint('next step: run OCR here')",
+  "resultPath": "/workspace/output.txt",
+  "camera": "environment",
+  "pollIntervalMs": 2000
+}

@@ -1,0 +1,9 @@
+{
+  "mode": "run",
+  "endpoint": "https://your-domain.example/api/e2b/jobs",
+  "authToken": "replace-with-proxy-token",
+  "title": "Check Python version",
+  "language": "shell",
+  "command": "python --version",
+  "pollIntervalMs": 2000
+}

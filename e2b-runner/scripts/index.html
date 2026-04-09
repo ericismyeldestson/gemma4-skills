@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<!-- Copyright 2026 Google LLC. Licensed under Apache 2.0 -->
+<html>
+<head><meta charset="utf-8"></head>
+<body>
+<script>
+window['ai_edge_gallery_get_result'] = async (data) => {
+  try {
+    const parsed = JSON.parse(data || '{}');
+    const mode = parsed.mode || 'run';
+    const endpoint = parsed.endpoint || '';
+    const hasCommand = typeof parsed.command === 'string' && parsed.command.trim();
+    const hasCode = typeof parsed.code === 'string' && parsed.code.trim();
+
+    if (!endpoint) {
+      return JSON.stringify({
+        error: 'Missing required field: endpoint'
+      });
+    }
+
+    if (!hasCommand && !hasCode) {
+      return JSON.stringify({
+        error: 'Missing execution payload: provide command or code'
+      });
+    }
+
+    const requestId = 'e2b-runner:' + Date.now() + ':' + Math.random().toString(36).slice(2);
+    let query = '';
+
+    try {
+      localStorage.setItem(requestId, JSON.stringify(parsed));
+      query = 'requestId=' + encodeURIComponent(requestId);
+    } catch (_) {
+      query = 'data=' + encodeURIComponent(JSON.stringify(parsed));
+    }
+
+    const title = parsed.title || (hasCommand ? 'Remote command job' : 'Remote code job');
+    const interactive = mode === 'snapshot_run';
+
+    return JSON.stringify({
+      result: interactive
+        ? 'Opening camera-assisted E2B runner.'
+        : 'Opening E2B runner.',
+      webview: {
+        url: `webview.html?${query}`,
+        aspectRatio: interactive ? 0.68 : 0.75
+      },
+      metadata: {
+        title,
+        mode
+      }
+    });
+  } catch (e) {
+    return JSON.stringify({ error: 'Error: ' + e.message });
+  }
+};
+</script>
+</body>
+</html>
