@@ -179,6 +179,23 @@
       max-height: 220px;
       overflow: auto;
     }
+    .json-input {
+      width: 100%;
+      min-height: 188px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      color: #dce7ff;
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(2, 7, 18, 0.78);
+      border: 1px solid rgba(98, 167, 255, 0.18);
+      outline: none;
+    }
+    .json-input::placeholder {
+      color: rgba(220, 231, 255, 0.35);
+    }
     .actions {
       display: flex;
       flex-wrap: wrap;
@@ -352,6 +369,15 @@
             <div class="code-box" id="payload-box"></div>
           </div>
           <div class="hint" id="spec-hint"></div>
+          <div id="manual-panel" class="hidden">
+            <div class="label">Manual Test JSON</div>
+            <textarea id="manual-json" class="json-input" spellcheck="false"></textarea>
+            <div class="actions">
+              <button class="btn-secondary" id="sample-btn">Load sample</button>
+              <button class="btn-primary" id="manual-run-btn">Use this JSON</button>
+            </div>
+            <div class="hint">This panel is only for iOS direct-open testing. Once a payload is loaded, the normal runner flow takes over.</div>
+          </div>
         </div>
       </section>
 
@@ -418,6 +444,10 @@
         metaGrid: document.getElementById('meta-grid'),
         payloadBox: document.getElementById('payload-box'),
         specHint: document.getElementById('spec-hint'),
+        manualPanel: document.getElementById('manual-panel'),
+        manualJson: document.getElementById('manual-json'),
+        sampleBtn: document.getElementById('sample-btn'),
+        manualRunBtn: document.getElementById('manual-run-btn'),
         messageBanner: document.getElementById('message-banner'),
         resultText: document.getElementById('result-text'),
         stdoutText: document.getElementById('stdout-text'),
@@ -441,6 +471,18 @@
           } catch (_) {}
         }
         return null;
+      }
+
+      function samplePayloadText() {
+        return JSON.stringify({
+          mode: 'run',
+          endpoint: 'https://example.com/api/e2b/jobs',
+          authToken: 'proxy-token',
+          title: 'Check Python version',
+          language: 'shell',
+          command: 'python --version',
+          autoStart: false
+        }, null, 2);
       }
 
       function normalizePayload(payload) {
@@ -522,6 +564,9 @@
           : 'The phone sends source code to your proxy. The proxy writes it into the sandbox and executes it there.';
 
         els.cameraCard.classList.toggle('hidden', payload.mode !== 'snapshot_run');
+        els.manualPanel.classList.add('hidden');
+        els.runBtn.disabled = false;
+        els.retryBtn.disabled = false;
       }
 
       function renderNoPayloadGuide() {
@@ -541,15 +586,53 @@
           card.innerHTML = `<div class="meta-label">${label}</div><div class="meta-value">${escapeHtml(value)}</div>`;
           els.metaGrid.appendChild(card);
         });
-        els.payloadBox.textContent = `{"mode":"run","endpoint":"https://example.com/api/e2b/jobs","authToken":"proxy-token","title":"Check Python version","language":"shell","command":"python --version","autoStart":false}`;
-        els.specHint.textContent = 'Use the chat layer to call e2b-runner with a payload. Do not open the page directly as a standalone destination.';
+        els.payloadBox.textContent = samplePayloadText();
+        els.specHint.textContent = 'Use the chat layer to call e2b-runner with a payload. Or, for iOS debugging, paste JSON below and load it manually.';
         els.cameraCard.classList.add('hidden');
+        els.manualPanel.classList.remove('hidden');
+        els.manualJson.value = samplePayloadText();
         els.runBtn.disabled = true;
         els.retryBtn.disabled = true;
         els.cancelBtn.classList.add('hidden');
         els.resultText.textContent = 'Try invoking the skill from chat with a JSON payload instead of opening the page directly.';
         els.stdoutText.textContent = 'Suggested test phrase: run e2b-runner with a shell payload that checks python version.';
-        els.stderrText.textContent = 'If iOS still opens this page directly, we should tighten SKILL.md trigger wording again.';
+        els.stderrText.textContent = 'If iOS still opens this page directly, you can now paste JSON below and test manually.';
+      }
+
+      function activatePayload(payload) {
+        const normalized = normalizePayload(payload);
+        if (!normalized) {
+          throw new Error('Payload must be a JSON object.');
+        }
+
+        state.payload = normalized;
+        state.jobId = '';
+        state.jobStatusUrl = '';
+        state.cancelUrl = '';
+        state.facingMode = normalized.camera;
+        stopPolling();
+        stopCamera();
+        showBanner('', '');
+        renderPayload();
+        setStatus('live', 'Manual payload loaded', 'Review the spec and start the runner.');
+        els.statusHint.textContent = normalized.mode === 'snapshot_run'
+          ? 'Capture a photo first, then submit the job.'
+          : 'Tap Start job when you are ready to test this payload.';
+        els.resultText.textContent = 'Payload loaded. Ready to submit.';
+        els.stdoutText.textContent = 'Manual test mode is active.';
+        els.stderrText.textContent = '';
+        if (normalized.mode === 'snapshot_run') startCamera();
+        if (normalized.autoStart) submitJob();
+      }
+
+      function loadManualPayload() {
+        try {
+          const parsed = JSON.parse(els.manualJson.value);
+          activatePayload(parsed);
+        } catch (err) {
+          setStatus('bad', 'Invalid JSON', err.message);
+          showBanner('Manual payload JSON is invalid. Fix it and try again.', 'bad');
+        }
       }
 
       function escapeHtml(value) {
@@ -807,6 +890,11 @@
         els.retryBtn.addEventListener('click', submitJob);
         els.cancelBtn.addEventListener('click', cancelJob);
         els.copyBtn.addEventListener('click', copyResult);
+        els.sampleBtn.addEventListener('click', () => {
+          els.manualJson.value = samplePayloadText();
+          showBanner('Loaded sample payload into the editor.', 'warn');
+        });
+        els.manualRunBtn.addEventListener('click', loadManualPayload);
         els.flipBtn.addEventListener('click', async () => {
           state.facingMode = state.facingMode === 'user' ? 'environment' : 'user';
           await startCamera();
@@ -851,4 +939,6 @@
   </script>
 </body>
 </html>
+
+
 
