@@ -9,6 +9,8 @@ Use this skill when the user wants to execute cloud sandbox work from Gemma 4 mo
 
 Always call `run_js` immediately with a JSON `data` string.
 
+Do not open the webview directly without payload. This skill only works when the caller provides a concrete `command` or `code` payload.
+
 This skill does not talk to E2B directly from the phone. It calls your own HTTPS proxy endpoint, and that proxy holds the real `E2B_API_KEY`.
 
 ## Supported modes
@@ -76,3 +78,22 @@ data:
 - Prefer `code` for multi-step Python or JavaScript work.
 - Use `snapshot_run` only when the job needs a fresh photo from the phone camera.
 - Never place the real `E2B_API_KEY` in `authToken` or any client-side field.
+- Never open the webview as a standalone page. Always call `run_js` with a full JSON payload first.
+
+## iOS test prompt
+
+Use this exact payload pattern for the first mobile smoke test:
+
+```json
+{
+  "mode": "run",
+  "endpoint": "https://example.com/api/e2b/jobs",
+  "authToken": "proxy-token",
+  "title": "Check Python version",
+  "language": "shell",
+  "command": "python --version",
+  "autoStart": false
+}
+```
+
+If the user mentions `e2b-runner`, `test e2b-runner`, or `run e2b-runner`, interpret that as a request to build a payload and call `run_js`, not as a request to open the page directly.

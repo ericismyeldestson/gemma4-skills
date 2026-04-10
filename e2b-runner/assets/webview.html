@@ -524,6 +524,34 @@
         els.cameraCard.classList.toggle('hidden', payload.mode !== 'snapshot_run');
       }
 
+      function renderNoPayloadGuide() {
+        els.heroTitle.textContent = 'E2B Runner is waiting for a skill payload';
+        els.heroSubtitle.textContent = 'This page was opened directly. On iOS, the skill should be triggered from chat with a full JSON payload.';
+        els.heroChips.innerHTML = '';
+        ['guide', 'ios test', 'payload required'].forEach(value => els.heroChips.appendChild(chip(value)));
+        els.metaGrid.innerHTML = '';
+        [
+          ['Status', 'No payload'],
+          ['Expected entry', 'run_js'],
+          ['Mode', 'run'],
+          ['Auto start', 'false']
+        ].forEach(([label, value]) => {
+          const card = document.createElement('div');
+          card.className = 'meta-item';
+          card.innerHTML = `<div class="meta-label">${label}</div><div class="meta-value">${escapeHtml(value)}</div>`;
+          els.metaGrid.appendChild(card);
+        });
+        els.payloadBox.textContent = `{"mode":"run","endpoint":"https://example.com/api/e2b/jobs","authToken":"proxy-token","title":"Check Python version","language":"shell","command":"python --version","autoStart":false}`;
+        els.specHint.textContent = 'Use the chat layer to call e2b-runner with a payload. Do not open the page directly as a standalone destination.';
+        els.cameraCard.classList.add('hidden');
+        els.runBtn.disabled = true;
+        els.retryBtn.disabled = true;
+        els.cancelBtn.classList.add('hidden');
+        els.resultText.textContent = 'Try invoking the skill from chat with a JSON payload instead of opening the page directly.';
+        els.stdoutText.textContent = 'Suggested test phrase: run e2b-runner with a shell payload that checks python version.';
+        els.stderrText.textContent = 'If iOS still opens this page directly, we should tighten SKILL.md trigger wording again.';
+      }
+
       function escapeHtml(value) {
         return String(value)
           .replaceAll('&', '&amp;')
@@ -795,9 +823,9 @@
       function init() {
         state.payload = normalizePayload(loadPayload());
         if (!state.payload) {
-          setStatus('bad', 'No payload', 'The skill payload could not be loaded.');
-          showBanner('Open this view from the e2b-runner skill so it receives a valid request payload.', 'bad');
-          els.cameraCard.classList.add('hidden');
+          setStatus('bad', 'No payload', 'This page was opened directly without a skill payload.');
+          showBanner('Open e2b-runner from chat with a JSON payload. Direct page opens are only a preview shell.', 'warn');
+          renderNoPayloadGuide();
           return;
         }
 
@@ -823,3 +851,4 @@
   </script>
 </body>
 </html>
+
