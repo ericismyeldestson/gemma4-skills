@@ -910,6 +910,7 @@
 
       function init() {
         state.payload = normalizePayload(loadPayload());
+        attachEvents();
         if (!state.payload) {
           setStatus('bad', 'No payload', 'This page was opened directly without a skill payload.');
           showBanner('Open e2b-runner from chat with a JSON payload. Direct page opens are only a preview shell.', 'warn');
@@ -919,7 +920,6 @@
 
         state.facingMode = state.payload.camera;
         renderPayload();
-        attachEvents();
         setStatus('live', 'Ready', 'Review the spec and start the remote sandbox job.');
         els.statusHint.textContent = state.payload.mode === 'snapshot_run'
           ? 'Capture a photo first. The proxy then uploads it to E2B as input.jpg.'
