@@ -1,88 +1,76 @@
 ---
 name: e2b-runner
-description: Run server-side E2B sandbox jobs from Gemma 4 mobile through a secure proxy.
+description: E4B-first mobile workbench for translate, rewrite, query, and optional legacy remote sandbox jobs.
 ---
 
-# E2B Runner
+# E4B Workbench
 
-Use this skill when the user wants to execute cloud sandbox work from Gemma 4 mobile.
+Use this skill as the main structured mobile workbench for Gemma 4 E4B.
 
 Always call `run_js` immediately with a JSON `data` string.
 
-Do not open the webview directly without payload. This skill only works when the caller provides a concrete `command` or `code` payload.
+This skill now has two groups of modes:
 
-This skill does not talk to E2B directly from the phone. It calls your own HTTPS proxy endpoint, and that proxy holds the real `E2B_API_KEY`.
+- local E4B modes: `translate`, `rewrite`, `query`
+- legacy remote modes: `run`, `snapshot_run`
 
-## Supported modes
+Prefer the local E4B modes unless the user explicitly wants a remote sandbox or secure proxy flow.
 
-## run (default)
-Execute a remote command or code job.
+## Local E4B modes
 
-data:
-```json
-{
-  "mode": "run",
-  "endpoint": "https://example.com/api/e2b/jobs",
-  "authToken": "proxy-token",
-  "title": "Check Python version",
-  "language": "shell",
-  "command": "python --version",
-  "pollIntervalMs": 2000
-}
-```
+These modes do not require a backend.
+They prepare a structured on-device task packet inside the workbench UI.
 
-## snapshot_run
-Open an interactive camera view, capture one image, attach it as `input.jpg`, then submit the remote job.
+### translate
+
+Use when the user wants direct translation.
 
 data:
 ```json
 {
-  "mode": "snapshot_run",
-  "endpoint": "https://example.com/api/e2b/jobs",
-  "authToken": "proxy-token",
-  "title": "OCR and summarize receipt",
-  "language": "python",
-  "code": "print('Use input.jpg here')",
-  "camera": "environment"
+  "mode": "translate",
+  "title": "Translate to English",
+  "sourceText": "我明天下午会到公司。",
+  "targetLanguage": "English",
+  "autoStart": true
 }
 ```
 
-## Data contract
+### rewrite
 
-- `endpoint`: required. Your HTTPS proxy endpoint for `POST /jobs`.
-- `authToken`: optional proxy auth token. Never send the real E2B API key to the phone.
-- `title`: optional short label shown in the UI.
-- `language`: optional. One of `shell`, `python`, `javascript`.
-- `command`: shell command to run remotely.
-- `code`: source code to run remotely. Use with `language=python` or `language=javascript`.
-- `files`: optional array of input files:
+Use when the user wants polishing, shortening, expansion, or tone change.
+
+data:
 ```json
-[
-  {
-    "name": "notes.txt",
-    "content": "hello",
-    "encoding": "text"
-  }
-]
+{
+  "mode": "rewrite",
+  "title": "Make this more formal",
+  "sourceText": "我们明天聊一下这个事。",
+  "rewriteGoal": "Rewrite in a more formal and concise tone.",
+  "autoStart": true
+}
 ```
-- `resultPath`: optional sandbox path to expose back as a downloadable artifact.
-- `metadata`: optional freeform JSON object passed through to your proxy.
-- `pollIntervalMs`: optional polling interval, default `2000`.
-- `autoStart`: optional boolean, default `true`.
 
-## Calling rules
+### query
 
-- If the user asks for E2B or cloud sandbox execution, use this skill.
-- Rewrite vague user intent into explicit `command` or `code` before calling.
-- Prefer `command` for simple shell tasks.
-- Prefer `code` for multi-step Python or JavaScript work.
-- Use `snapshot_run` only when the job needs a fresh photo from the phone camera.
-- Never place the real `E2B_API_KEY` in `authToken` or any client-side field.
-- Never open the webview as a standalone page. Always call `run_js` with a full JSON payload first.
+Use when the user wants a one-shot explanation, summary, extraction, or comparison.
 
-## iOS test prompt
+data:
+```json
+{
+  "mode": "query",
+  "title": "Summarize this text",
+  "sourceText": "Paste the text or notes here.",
+  "question": "Summarize the key points in 3 bullets.",
+  "autoStart": true
+}
+```
 
-Use this exact payload pattern for the first mobile smoke test:
+## Legacy remote modes
+
+Keep using these only when the user explicitly wants remote execution or a proxy-backed sandbox.
+
+### run
 
 ```json
 {
@@ -96,4 +84,67 @@ Use this exact payload pattern for the first mobile smoke test:
 }
 ```
 
-If the user mentions `e2b-runner`, `test e2b-runner`, or `run e2b-runner`, interpret that as a request to build a payload and call `run_js`, not as a request to open the page directly.
+### snapshot_run
+
+```json
+{
+  "mode": "snapshot_run",
+  "endpoint": "https://example.com/api/e2b/jobs",
+  "authToken": "proxy-token",
+  "title": "OCR and summarize receipt",
+  "language": "python",
+  "code": "print('Use input.jpg here')",
+  "camera": "environment",
+  "autoStart": false
+}
+```
+
+## Calling rules
+
+- Prefer `translate` for direct translation.
+- Prefer `rewrite` for polish, tone shift, shortening, or expansion.
+- Prefer `query` for one-shot explanation, extraction, summary, or comparison.
+- Prefer `run` and `snapshot_run` only for explicit remote execution.
+- For local modes, put the real user text into `sourceText`.
+- For `translate`, set `targetLanguage`.
+- For `rewrite`, set `rewriteGoal`.
+- For `query`, set `question`.
+- Never place the real `E2B_API_KEY` on the phone.
+
+## iOS test payloads
+
+### Local translate smoke test
+
+```json
+{
+  "mode": "translate",
+  "title": "Translate to English",
+  "sourceText": "我明天下午会到公司。",
+  "targetLanguage": "English",
+  "autoStart": false
+}
+```
+
+### Local rewrite smoke test
+
+```json
+{
+  "mode": "rewrite",
+  "title": "Make this more formal",
+  "sourceText": "我们明天聊一下这个事。",
+  "rewriteGoal": "Rewrite in a more formal tone.",
+  "autoStart": false
+}
+```
+
+### Local query smoke test
+
+```json
+{
+  "mode": "query",
+  "title": "Summarize this text",
+  "sourceText": "PhoneClaw is a local iPhone AI agent.",
+  "question": "Summarize this in 2 short bullet points.",
+  "autoStart": false
+}
+```

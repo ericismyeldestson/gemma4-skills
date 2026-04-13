@@ -473,25 +473,61 @@
         return null;
       }
 
-      function samplePayloadText() {
+            function samplePayloadText() {
         return JSON.stringify({
-          mode: 'run',
-          endpoint: 'https://example.com/api/e2b/jobs',
-          authToken: 'proxy-token',
-          title: 'Check Python version',
-          language: 'shell',
-          command: 'python --version',
+          mode: 'translate',
+          title: 'Translate to English',
+          sourceText: '我明天下午会到公司。',
+          targetLanguage: 'English',
           autoStart: false
         }, null, 2);
       }
 
+      function isLocalMode(mode) {
+        return ['translate', 'rewrite', 'query'].includes(mode);
+      }
+
+      function isRemoteMode(mode) {
+        return ['run', 'snapshot_run'].includes(mode);
+      }
+
       function normalizePayload(payload) {
         if (!payload || typeof payload !== 'object') return null;
-        const mode = payload.mode || 'run';
+        const mode = payload.mode || 'query';
+
+        if (isLocalMode(mode)) {
+          return {
+            mode,
+            locality: 'local',
+            title: payload.title || (mode === 'translate'
+              ? 'Translate text'
+              : mode === 'rewrite'
+                ? 'Rewrite text'
+                : 'Query text'),
+            sourceText: payload.sourceText || '',
+            targetLanguage: payload.targetLanguage || '',
+            rewriteGoal: payload.rewriteGoal || '',
+            question: payload.question || '',
+            metadata: payload.metadata || {},
+            autoStart: payload.autoStart !== false,
+            camera: 'environment',
+            endpoint: '',
+            authToken: '',
+            language: 'e4b-local',
+            command: '',
+            code: '',
+            files: [],
+            resultPath: '',
+            pollIntervalMs: 2000,
+            executionType: 'local'
+          };
+        }
+
         const language = payload.language || (payload.command ? 'shell' : 'python');
         const executionType = payload.command ? 'command' : 'code';
         return {
           mode,
+          locality: 'remote',
           endpoint: payload.endpoint || '',
           authToken: payload.authToken || '',
           title: payload.title || (executionType === 'command' ? 'Remote command job' : 'Remote code job'),
@@ -506,6 +542,50 @@
           camera: payload.camera || 'environment',
           executionType
         };
+      }
+
+      function localModeSubtitle(mode) {
+        if (mode === 'translate') return 'Prepare a direct E4B translation task on-device. No backend or proxy is required.';
+        if (mode === 'rewrite') return 'Prepare a rewrite or tone-shift task for on-device E4B reasoning.';
+        return 'Prepare a one-shot E4B query for summary, extraction, comparison, or explanation.';
+      }
+
+      function localGoalLabel(payload) {
+        if (payload.mode === 'translate') return payload.targetLanguage || 'Direct translation';
+        if (payload.mode === 'rewrite') return payload.rewriteGoal || 'Rewrite text';
+        return payload.question || 'Answer the query directly';
+      }
+
+      function localPrimaryText(payload) {
+        return payload.sourceText || payload.question || '';
+      }
+
+      function buildLocalTaskBrief(payload) {
+        const lines = [
+          'E4B Local Task',
+          'Mode: ' + payload.mode,
+          'Title: ' + payload.title,
+          ''
+        ];
+
+        if (payload.mode === 'translate') {
+          lines.push('Target language: ' + (payload.targetLanguage || 'Unspecified'));
+          lines.push('Instruction: Translate directly and keep names, numbers, and dates intact.');
+        } else if (payload.mode === 'rewrite') {
+          lines.push('Rewrite goal: ' + (payload.rewriteGoal || 'Improve clarity while preserving meaning.'));
+          lines.push('Instruction: Rewrite the source text directly without adding new claims.');
+        } else {
+          lines.push('Question: ' + (payload.question || 'Answer directly from the provided text.'));
+          lines.push('Instruction: Provide a concise one-shot answer.');
+        }
+
+        if (payload.sourceText) {
+          lines.push('');
+          lines.push('Source text:');
+          lines.push(payload.sourceText);
+        }
+
+        return lines.join('\n');
       }
 
       function setStatus(kind, title, detail) {
@@ -535,50 +615,72 @@
         return div;
       }
 
-      function renderPayload() {
+            function renderPayload() {
         const payload = state.payload;
+        const localMode = isLocalMode(payload.mode);
         els.heroTitle.textContent = payload.title;
-        els.heroSubtitle.textContent = payload.mode === 'snapshot_run'
-          ? 'Capture one phone image, then submit a remote sandbox job through your secure proxy.'
-          : 'Submit a deterministic command or code job to your secure E2B proxy.';
+        els.heroSubtitle.textContent = localMode
+          ? localModeSubtitle(payload.mode)
+          : payload.mode === 'snapshot_run'
+            ? 'Capture one phone image, then submit a remote sandbox job through your secure proxy.'
+            : 'Submit a deterministic command or code job to your secure E2B proxy.';
         els.heroChips.innerHTML = '';
-        [payload.mode, payload.language, payload.executionType, payload.resultPath ? 'artifact' : 'no artifact']
+        (localMode
+          ? [payload.mode, 'local', 'e4b', 'no backend']
+          : [payload.mode, payload.language, payload.executionType, payload.resultPath ? 'artifact' : 'no artifact'])
           .forEach(value => els.heroChips.appendChild(chip(value)));
 
         els.metaGrid.innerHTML = '';
-        [
-          ['Endpoint', payload.endpoint],
-          ['Language', payload.language],
-          ['Execution', payload.executionType],
-          ['Files', String(payload.files.length + (state.snapshotReady ? 1 : 0))]
-        ].forEach(([label, value]) => {
-          const card = document.createElement('div');
-          card.className = 'meta-item';
-          card.innerHTML = `<div class="meta-label">${label}</div><div class="meta-value">${escapeHtml(value)}</div>`;
-          els.metaGrid.appendChild(card);
-        });
+        (localMode
+          ? [
+              ['Mode', payload.mode],
+              ['Locality', 'on-device'],
+              ['Input chars', String(localPrimaryText(payload).length)],
+              ['Goal', localGoalLabel(payload)]
+            ]
+          : [
+              ['Endpoint', payload.endpoint],
+              ['Language', payload.language],
+              ['Execution', payload.executionType],
+              ['Files', String(payload.files.length + (state.snapshotReady ? 1 : 0))]
+            ])
+          .forEach(([label, value]) => {
+            const card = document.createElement('div');
+            card.className = 'meta-item';
+            card.innerHTML = `<div class="meta-label">${label}</div><div class="meta-value">${escapeHtml(value)}</div>`;
+            els.metaGrid.appendChild(card);
+          });
 
-        els.payloadBox.textContent = payload.executionType === 'command' ? payload.command : payload.code;
-        els.specHint.textContent = payload.executionType === 'command'
-          ? 'The phone sends a shell command to your proxy. The proxy decides how to run and contain it inside E2B.'
-          : 'The phone sends source code to your proxy. The proxy writes it into the sandbox and executes it there.';
+        els.payloadBox.textContent = localMode
+          ? localPrimaryText(payload) || '(No source text provided yet)'
+          : payload.executionType === 'command'
+            ? payload.command
+            : payload.code;
+        els.specHint.textContent = localMode
+          ? 'Tap Prepare task to generate a structured local E4B brief. This mode makes no network request.'
+          : payload.executionType === 'command'
+            ? 'The phone sends a shell command to your proxy. The proxy decides how to run and contain it inside E2B.'
+            : 'The phone sends source code to your proxy. The proxy writes it into the sandbox and executes it there.';
 
         els.cameraCard.classList.toggle('hidden', payload.mode !== 'snapshot_run');
         els.manualPanel.classList.add('hidden');
         els.runBtn.disabled = false;
         els.retryBtn.disabled = false;
+        els.runBtn.textContent = localMode ? 'Prepare task' : 'Start job';
+        els.retryBtn.textContent = localMode ? 'Prepare again' : 'Retry';
+        els.cancelBtn.classList.toggle('hidden', localMode || !state.jobId);
       }
 
-      function renderNoPayloadGuide() {
-        els.heroTitle.textContent = 'E2B Runner is waiting for a skill payload';
-        els.heroSubtitle.textContent = 'This page was opened directly. On iOS, the skill should be triggered from chat with a full JSON payload.';
+                  function renderNoPayloadGuide() {
+        els.heroTitle.textContent = 'E4B Workbench is waiting for a skill payload';
+        els.heroSubtitle.textContent = 'This page was opened directly. On iOS, trigger the skill from chat with a structured payload, or load a local sample below.';
         els.heroChips.innerHTML = '';
-        ['guide', 'ios test', 'payload required'].forEach(value => els.heroChips.appendChild(chip(value)));
+        ['guide', 'ios test', 'e4b local'].forEach(value => els.heroChips.appendChild(chip(value)));
         els.metaGrid.innerHTML = '';
         [
           ['Status', 'No payload'],
           ['Expected entry', 'run_js'],
-          ['Mode', 'run'],
+          ['Mode', 'translate'],
           ['Auto start', 'false']
         ].forEach(([label, value]) => {
           const card = document.createElement('div');
@@ -587,16 +689,18 @@
           els.metaGrid.appendChild(card);
         });
         els.payloadBox.textContent = samplePayloadText();
-        els.specHint.textContent = 'Use the chat layer to call e2b-runner with a payload. Or, for iOS debugging, paste JSON below and load it manually.';
+        els.specHint.textContent = 'Use the chat layer to call e2b-runner with a local E4B payload. Or, for iOS debugging, paste JSON below and load it manually.';
         els.cameraCard.classList.add('hidden');
         els.manualPanel.classList.remove('hidden');
         els.manualJson.value = samplePayloadText();
         els.runBtn.disabled = true;
         els.retryBtn.disabled = true;
         els.cancelBtn.classList.add('hidden');
-        els.resultText.textContent = 'Try invoking the skill from chat with a JSON payload instead of opening the page directly.';
-        els.stdoutText.textContent = 'Suggested test phrase: run e2b-runner with a shell payload that checks python version.';
-        els.stderrText.textContent = 'If iOS still opens this page directly, you can now paste JSON below and test manually.';
+        els.runBtn.textContent = 'Prepare task';
+        els.retryBtn.textContent = 'Prepare again';
+        els.resultText.textContent = 'Load a local translate, rewrite, or query payload to enter the E4B workbench.';
+        els.stdoutText.textContent = 'Suggested test phrase: run e2b-runner with a translate payload that converts Chinese to English.';
+        els.stderrText.textContent = 'Legacy remote sandbox modes still work, but local E4B modes are now preferred.';
       }
 
       function activatePayload(payload) {
@@ -614,11 +718,17 @@
         stopCamera();
         showBanner('', '');
         renderPayload();
-        setStatus('live', 'Manual payload loaded', 'Review the spec and start the runner.');
-        els.statusHint.textContent = normalized.mode === 'snapshot_run'
-          ? 'Capture a photo first, then submit the job.'
-          : 'Tap Start job when you are ready to test this payload.';
-        els.resultText.textContent = 'Payload loaded. Ready to submit.';
+        setStatus('live', 'Manual payload loaded', isLocalMode(normalized.mode)
+          ? 'Review the local E4B task and prepare it.'
+          : 'Review the spec and start the runner.');
+        els.statusHint.textContent = isLocalMode(normalized.mode)
+          ? 'Tap Prepare task when you are ready to generate the local E4B brief.'
+          : normalized.mode === 'snapshot_run'
+            ? 'Capture a photo first, then submit the job.'
+            : 'Tap Start job when you are ready to test this payload.';
+        els.resultText.textContent = isLocalMode(normalized.mode)
+          ? 'Payload loaded. Ready to prepare a local task.'
+          : 'Payload loaded. Ready to submit.';
         els.stdoutText.textContent = 'Manual test mode is active.';
         els.stderrText.textContent = '';
         if (normalized.mode === 'snapshot_run') startCamera();
@@ -735,7 +845,25 @@
         };
       }
 
+            function runLocalTask() {
+        const brief = buildLocalTaskBrief(state.payload);
+        setStatus('ok', 'Local task prepared', 'No backend call was made. Copy the brief or use it as a structured E4B packet.');
+        showBanner('This mode stays on-device and does not call a proxy endpoint.', 'warn');
+        els.resultText.textContent = brief;
+        els.stdoutText.textContent = state.payload.mode === 'translate'
+          ? 'Expected output: direct translation only.'
+          : state.payload.mode === 'rewrite'
+            ? 'Expected output: rewritten text only.'
+            : 'Expected output: concise one-shot answer.';
+        els.stderrText.textContent = 'Network: not used';
+        els.cancelBtn.classList.add('hidden');
+      }
+
       async function submitJob() {
+        if (isLocalMode(state.payload.mode)) {
+          runLocalTask();
+          return;
+        }
         if (!state.payload.endpoint) {
           setStatus('bad', 'Configuration error', 'Missing proxy endpoint.');
           showBanner('Provide an HTTPS proxy endpoint in the skill data before running.', 'bad');
@@ -920,10 +1048,12 @@
 
         state.facingMode = state.payload.camera;
         renderPayload();
-        setStatus('live', 'Ready', 'Review the spec and start the remote sandbox job.');
-        els.statusHint.textContent = state.payload.mode === 'snapshot_run'
-          ? 'Capture a photo first. The proxy then uploads it to E2B as input.jpg.'
-          : 'The job is deterministic: the phone sends explicit command/code to your proxy.';
+        setStatus('live', 'Ready', isLocalMode(state.payload.mode) ? 'Review the local E4B task and prepare it when ready.' : 'Review the spec and start the remote sandbox job.');
+        els.statusHint.textContent = isLocalMode(state.payload.mode)
+          ? 'This local mode prepares an on-device E4B task packet. No proxy call will be made.'
+          : state.payload.mode === 'snapshot_run'
+            ? 'Capture a photo first. The proxy then uploads it to E2B as input.jpg.'
+            : 'The job is deterministic: the phone sends explicit command/code to your proxy.';
 
         if (state.payload.mode === 'snapshot_run') startCamera();
         if (state.payload.autoStart && state.payload.mode !== 'snapshot_run') submitJob();
@@ -939,6 +1069,9 @@
   </script>
 </body>
 </html>
+
+
+
 
 
 

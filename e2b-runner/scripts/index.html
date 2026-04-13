@@ -7,24 +7,52 @@
 window['ai_edge_gallery_get_result'] = async (data) => {
   try {
     const parsed = JSON.parse(data || '{}');
-    const mode = parsed.mode || 'run';
-    const endpoint = parsed.endpoint || '';
-    const hasCommand = typeof parsed.command === 'string' && parsed.command.trim();
-    const hasCode = typeof parsed.code === 'string' && parsed.code.trim();
+    const mode = parsed.mode || 'query';
+    const localModes = new Set(['translate', 'rewrite', 'query']);
+    const remoteModes = new Set(['run', 'snapshot_run']);
+    const isLocalMode = localModes.has(mode);
+    const isRemoteMode = remoteModes.has(mode);
 
-    if (!endpoint) {
+    if (!isLocalMode && !isRemoteMode) {
       return JSON.stringify({
-        error: 'Missing required field: endpoint'
+        error: 'Unsupported mode: ' + mode
       });
     }
 
-    if (!hasCommand && !hasCode) {
-      return JSON.stringify({
-        error: 'Missing execution payload: provide command or code'
-      });
+    if (isLocalMode) {
+      const hasSourceText = typeof parsed.sourceText === 'string' && parsed.sourceText.trim();
+      const hasQuestion = typeof parsed.question === 'string' && parsed.question.trim();
+      const hasRewriteGoal = typeof parsed.rewriteGoal === 'string' && parsed.rewriteGoal.trim();
+      const hasTargetLanguage = typeof parsed.targetLanguage === 'string' && parsed.targetLanguage.trim();
+
+      if (mode === 'translate' && !hasTargetLanguage) {
+        return JSON.stringify({ error: 'Missing required field: targetLanguage' });
+      }
+      if (mode === 'rewrite' && !hasRewriteGoal) {
+        return JSON.stringify({ error: 'Missing required field: rewriteGoal' });
+      }
+      if (mode === 'query' && !hasQuestion && !hasSourceText) {
+        return JSON.stringify({ error: 'Provide question or sourceText for query mode' });
+      }
+      if ((mode === 'translate' || mode === 'rewrite') && !hasSourceText) {
+        return JSON.stringify({ error: 'Missing required field: sourceText' });
+      }
     }
 
-    const requestId = 'e2b-runner:' + Date.now() + ':' + Math.random().toString(36).slice(2);
+    if (isRemoteMode) {
+      const endpoint = parsed.endpoint || '';
+      const hasCommand = typeof parsed.command === 'string' && parsed.command.trim();
+      const hasCode = typeof parsed.code === 'string' && parsed.code.trim();
+
+      if (!endpoint) {
+        return JSON.stringify({ error: 'Missing required field: endpoint' });
+      }
+      if (!hasCommand && !hasCode) {
+        return JSON.stringify({ error: 'Missing execution payload: provide command or code' });
+      }
+    }
+
+    const requestId = 'e4b-workbench:' + Date.now() + ':' + Math.random().toString(36).slice(2);
     let query = '';
 
     try {
@@ -34,20 +62,22 @@ window['ai_edge_gallery_get_result'] = async (data) => {
       query = 'data=' + encodeURIComponent(JSON.stringify(parsed));
     }
 
-    const title = parsed.title || (hasCommand ? 'Remote command job' : 'Remote code job');
-    const interactive = mode === 'snapshot_run';
+    const title = parsed.title || (isLocalMode
+      ? (mode === 'translate' ? 'Translate text' : mode === 'rewrite' ? 'Rewrite text' : 'Query text')
+      : ((typeof parsed.command === 'string' && parsed.command.trim()) ? 'Remote command job' : 'Remote code job'));
 
     return JSON.stringify({
-      result: interactive
-        ? 'Opening camera-assisted E2B runner.'
-        : 'Opening E2B runner.',
+      result: isLocalMode
+        ? 'Opening E4B local workbench.'
+        : (mode === 'snapshot_run' ? 'Opening camera-assisted remote workbench.' : 'Opening remote workbench.'),
       webview: {
         url: `webview.html?${query}`,
-        aspectRatio: interactive ? 0.68 : 0.75
+        aspectRatio: mode === 'snapshot_run' ? 0.68 : 0.75
       },
       metadata: {
         title,
-        mode
+        mode,
+        locality: isLocalMode ? 'local' : 'remote'
       }
     });
   } catch (e) {
